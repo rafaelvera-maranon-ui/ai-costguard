@@ -35,7 +35,7 @@ For a controlled validation on a work laptop with Cline, use the reusable Spanis
 docs/prompts/work-pc-validation-prompt.es.md
 ```
 
-It asks the assistant to run the isolated smoke first, avoid printing secrets, configure only Cline before Claude Code, and use `.venv\Scripts\costguard.exe` on Windows if `costguard` is not in PATH.
+It asks the assistant to run the isolated smoke first, avoid printing secrets, install `costguard` as a global command with `uv tool install --editable ... --link-mode=copy` when available, configure only Cline before Claude Code, and document Windows PATH or OneDrive issues.
 
 ## Install
 
@@ -48,6 +48,17 @@ For an end-user machine:
 ```bash
 pipx install git+https://github.com/your-org/ai-costguard.git
 ```
+
+On Windows work laptops where `uv` is available, a practical local install from the repo is:
+
+```powershell
+uv venv .venv --python 3.14
+uv pip install -e ".[dev]" --python .venv\Scripts\python.exe --link-mode=copy
+uv tool install --editable "." --link-mode=copy
+costguard --help
+```
+
+Use a Python version `>=3.10` that exists on the machine. Keep `--link-mode=copy` when the repo is under OneDrive.
 
 ## setup
 

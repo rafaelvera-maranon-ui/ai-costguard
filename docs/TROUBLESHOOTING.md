@@ -76,7 +76,15 @@ In isolated development, edit:
 
 If `python` is not in PATH, use the launcher approved on that machine, such as `py`, `uv`, or the corporate Python path. Do not change the global Python install without checking first.
 
-If `costguard` is not in PATH after editable install, call the virtualenv executable directly:
+If `uv` is available, install dependencies and the global `costguard` command with copy mode:
+
+```powershell
+uv pip install -e ".[dev]" --python .venv\Scripts\python.exe --link-mode=copy
+uv tool install --editable "." --link-mode=copy
+costguard --help
+```
+
+If `costguard` is not in PATH after editable install, either install it as a tool with `uv tool install --editable "." --link-mode=copy` or call the virtualenv executable directly:
 
 ```powershell
 .\.venv\Scripts\costguard.exe doctor
@@ -84,6 +92,17 @@ If `costguard` is not in PATH after editable install, call the virtualenv execut
 ```
 
 PowerShell does not always behave like Bash for command chaining. If `&&` fails, run commands separately or use `;`.
+
+## OneDrive Hardlink Failures
+
+Corporate Windows repos often live under OneDrive. Some installers try to create hardlinks and fail with filesystem errors. Use copy mode:
+
+```powershell
+uv pip install -e ".[dev]" --python .venv\Scripts\python.exe --link-mode=copy
+uv tool install --editable "." --link-mode=copy
+```
+
+This avoids hardlink assumptions and keeps the install local to the machine.
 
 ## Claude Code Settings Look Wrong
 

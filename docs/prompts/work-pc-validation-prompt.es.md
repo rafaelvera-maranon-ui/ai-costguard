@@ -2,6 +2,8 @@
 
 Usa este prompt cuando quieras instalar y validar `ai-costguard` en un ordenador de trabajo con Cline, sin exponer secretos y sin tocar configuraciones reales hasta que el smoke aislado haya pasado.
 
+Esta version incorpora aprendizajes reales de Windows corporativo: `python` puede no estar en PATH, `uv` puede ser la ruta mas fiable, los repos en OneDrive pueden fallar con hardlinks, y conviene instalar `costguard` como comando global antes del smoke.
+
 ````text
 Quiero instalar y validar el repo `ai-costguard` en mi ordenador de trabajo de forma controlada y sin exponer secretos.
 
@@ -34,35 +36,100 @@ Resume:
 - que ficheros locales toca
 - que componentes son obligatorios y cuales opcionales
 
-Crea entorno local del repo:
+## FASE 1 - Detectar Python y uv disponibles
 
-```bash
+En maquinas corporativas, `python` puede no estar en PATH. Antes de crear el venv, detecta el ejecutable disponible:
+
+```powershell
+where.exe python
+where.exe python3
+Get-Command py -ErrorAction SilentlyContinue
+where.exe uv
+```
+
+Si `uv` esta disponible, usalo como opcion recomendada.
+Si solo hay `python`, `python3` o `py`, usa ese ejecutable directamente.
+No instales ni cambies Python global sin mi permiso.
+
+## FASE 2 - Crear entorno local e instalar dependencias
+
+Opcion A: con `uv` (recomendada si esta disponible):
+
+```powershell
+uv python list
+uv venv .venv --python 3.14
+uv pip install -e ".[dev]" --python .venv\Scripts\python.exe --link-mode=copy
+```
+
+Notas:
+- La version Python debe ser `>=3.10`; usa la version disponible en el equipo si no existe Python 3.14.
+- En repos bajo OneDrive, usa siempre `--link-mode=copy` para evitar errores de hardlinks.
+
+Opcion B: con `python` / `pip` estandar:
+
+```powershell
 python -m venv .venv
+.\.venv\Scripts\activate
 pip install -e .[dev]
-pytest
 ```
 
-Si `python` no esta en PATH en Windows, usa el lanzador disponible en el equipo, por ejemplo `py`, `uv`, o la ruta corporativa autorizada. No instales ni cambies Python global sin mi permiso.
+Luego ejecuta tests:
 
-Ejecuta smoke aislado, sin tocar mi HOME real.
-
-Linux/macOS/Git Bash:
-
-```bash
-export COSTGUARD_HOME="$(pwd)/.tmp/costguard"
-export COSTGUARD_CLAUDE_HOME="$(pwd)/.tmp/claude"
+```powershell
+.\.venv\Scripts\pytest.exe
 ```
 
-PowerShell:
+## FASE 3 - Instalar `costguard` como comando global
+
+Esto es importante para poder usar `costguard` directamente desde cualquier terminal sin activar venv ni usar rutas largas.
+
+Con `uv tool install` (recomendado):
+
+```powershell
+uv tool install --editable "." --link-mode=copy
+```
+
+Si estas fuera de la raiz del repo, usa la ruta completa:
+
+```powershell
+uv tool install --editable "<ruta-al-repo-ai-costguard>" --link-mode=copy
+```
+
+Ejemplo:
+
+```powershell
+uv tool install --editable "C:\Users\<user>\OneDrive - Empresa\Documentos\Github\AI\ai-costguard" --link-mode=copy
+```
+
+Notas:
+- En maquinas con OneDrive, `--link-mode=copy` es obligatorio para evitar fallos de hardlinks.
+- Si el paquete ya estaba instalado, usa la opcion de reinstalacion/upgrade que indique `uv`, manteniendo `--link-mode=copy`.
+- No edites PATH global sin mi permiso. Si el comando no aparece, dime donde quedo instalado.
+
+Verifica:
+
+```powershell
+costguard --help
+```
+
+Alternativa con `pipx`:
+
+```powershell
+pipx install --editable "<ruta-al-repo-ai-costguard>"
+```
+
+## FASE 4 - Smoke tests aislados
+
+Nunca ejecutes smoke tests contra el HOME real. Usa paths temporales dentro del repo:
 
 ```powershell
 $env:COSTGUARD_HOME = "$(Get-Location)\.tmp\costguard"
 $env:COSTGUARD_CLAUDE_HOME = "$(Get-Location)\.tmp\claude"
 ```
 
-Luego ejecuta:
+Luego ejecuta en orden:
 
-```bash
+```powershell
 costguard --help
 costguard setup --tool both --daily-budget 5 --monthly-budget 100 --budget-mode warn --non-interactive
 costguard doctor
@@ -76,39 +143,63 @@ costguard usage today
 costguard cache status
 costguard headroom status
 costguard uninstall --yes
-pytest
 ```
 
-En Windows, si `costguard` no esta en PATH, usa la ruta del entorno virtual:
+Despues del uninstall aislado, ejecuta tests de nuevo:
 
 ```powershell
-.\.venv\Scripts\costguard.exe --help
-.\.venv\Scripts\costguard.exe doctor
+.\.venv\Scripts\pytest.exe
 ```
+
+Todos deben pasar.
 
 En PowerShell no uses `&&`; ejecuta comandos separados o usa `;`.
 
-Si todo esta OK, prepara setup real SOLO para Cline:
+## FASE 5 - Setup real SOLO para Cline
 
-```bash
+Si todos los smoke tests estan OK, limpia las variables de entorno temporales y ejecuta el setup real:
+
+```powershell
+Remove-Item Env:COSTGUARD_HOME -ErrorAction SilentlyContinue
+Remove-Item Env:COSTGUARD_CLAUDE_HOME -ErrorAction SilentlyContinue
 costguard setup --tool cline --daily-budget 5 --monthly-budget 100 --budget-mode warn --non-interactive
 ```
 
 No configures Claude Code todavia.
 
-Para secretos corporativos:
-- indicame que fichero debo editar
-- no imprimas el contenido sensible
-- yo introducire manualmente la Base URL, API key y modelo corporativo en `.env`
-- no pases secretos como flags ni los dejes en historial de comandos
+## FASE 6 - Credenciales corporativas
 
-Despues valida:
+Indicame que fichero debo editar.
+No imprimas el contenido sensible.
+Yo introducire manualmente la Base URL, API key y modelo corporativo en `.env`.
 
-```bash
+El fichero a editar normalmente es:
+
+```text
+C:\Users\<user>\.costguard\.env
+```
+
+Variables habituales:
+
+```text
+OPENAI_UPSTREAM_BASE_URL=<base URL corporativa>
+OPENAI_UPSTREAM_API_KEY=<API key corporativa>
+OPENAI_MODEL_STANDARD=<nombre del modelo>
+```
+
+No imprimas los valores reales.
+
+## FASE 7 - Validacion post-credenciales
+
+```powershell
 costguard doctor
 costguard status
 costguard cline-config
 ```
+
+El doctor debe mostrar 0 ERRORs. Los WARNs de upstream deben desaparecer tras anadir credenciales.
+
+## Configuracion de Cline
 
 Muestrame que poner en Cline:
 
@@ -119,7 +210,42 @@ API Key: sk-costguard-local
 Model ID: cg-standard
 ```
 
-Para arrancar Cost Guard, explicame si `costguard start` bloqueara la terminal. Si bloquea, dime como dejarlo corriendo en otra terminal.
+No intentes modificar Cline automaticamente si no esta claro como hacerlo.
+
+## Arrancar Cost Guard
+
+`costguard start` bloquea la terminal. Para dejarlo corriendo:
+
+1. Abre una terminal nueva en VS Code.
+2. Ejecuta `costguard start`.
+3. Deja esa terminal abierta.
+4. Usa otra terminal para el resto de comandos.
+
+Valida desde otra terminal:
+
+```powershell
+costguard doctor
+costguard status
+```
+
+## Prueba real minima con Cline
+
+Cuando yo haya configurado Cline con `http://127.0.0.1:4040/v1`, hare una pregunta muy pequena en Cline.
+
+Despues revisa:
+
+```powershell
+costguard usage today
+costguard budget status
+```
+
+Valida que:
+- Cost Guard ha registrado uso.
+- No ha guardado prompts/respuestas por defecto.
+- El budget funciona.
+- Cline sigue operativo.
+
+## Claude Code, opcional
 
 No configures Claude Code hasta que yo lo confirme.
 
@@ -130,14 +256,19 @@ Si confirmo Claude Code:
 - ejecuta `costguard setup --tool claude-code` solo cuando yo lo autorice
 - valida despues con `costguard doctor`
 
-Para uninstall:
-- primero explicame que hara `costguard uninstall`
+## Uninstall
+
+Antes de ejecutar uninstall:
+- explicame que hara `costguard uninstall`
 - no ejecutes `costguard uninstall --purge` salvo que yo lo pida
 - valida que Claude Code vuelve a su configuracion previa si se toco
 
-Al final resume:
-- tests ejecutados
-- smoke tests ejecutados
+## Resumen final
+
+Al terminar, resume:
+- tests ejecutados y resultado
+- smoke tests ejecutados y resultado
+- si `costguard` quedo disponible como comando global
 - si Cline quedo configurado
 - si Claude Code quedo configurado
 - como arrancar Cost Guard cada dia
@@ -145,6 +276,6 @@ Al final resume:
 - como cambiar presupuesto
 - como editar reglas
 - como desinstalar
-- problemas encontrados
+- problemas encontrados, especialmente PATH, OneDrive y hardlinks
 - cambios realizados en el repo
 ````
