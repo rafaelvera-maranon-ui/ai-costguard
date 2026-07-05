@@ -1,12 +1,25 @@
 # AI Cost Guard
 
-AI Cost Guard is a local-first proxy and guardrail kit for developers using coding agents in VS Code, mainly Cline and Claude Code. It helps reduce token usage, enforce local budgets, block risky secret access, and keep usage metadata in SQLite.
+AI Cost Guard is a local-first AI gateway/middleware for developers using coding agents in VS Code, mainly Cline and Claude Code. It sits between the local agent and your configured upstream model provider, applying budget checks, rule-based command guardrails, output limits, model aliases, and SQLite usage accounting.
+
+It is not a full agent, model provider, cloud service, or VS Code extension. The shipped package is a small CLI plus a localhost proxy, editable rules, Claude Code hooks, Cline configuration text, and local storage under `COSTGUARD_HOME`.
 
 ```text
 VS Code
   Cline       -> http://127.0.0.1:4040/v1 -> Cost Guard -> OpenAI-compatible upstream
   Claude Code -> http://127.0.0.1:4040    -> Cost Guard -> Anthropic-compatible upstream
 ```
+
+## Solution Components
+
+- CLI: `costguard setup`, `doctor`, `status`, `rules`, `budget`, `usage`, `cache`, `headroom`, and `uninstall`.
+- Local proxy: localhost HTTP gateway for OpenAI-compatible Cline traffic and Anthropic-compatible Claude Code traffic.
+- Rules: editable YAML files for blocked paths, blocked commands, command rewrites, log handling, and output limits.
+- Hooks: Claude Code `PreToolUse` and `PostToolUse` commands that block risky access and reduce noisy tool output.
+- Safe commands: small helper scripts such as `short-diff`, `safe-grep`, `summarize-log`, and `test-failures-only`.
+- SQLite store: local `costguard.db` for usage metadata, budget state, and audit events.
+- Config files: `.env` and `config/settings.yaml` under `COSTGUARD_HOME`.
+- Docs: runbook, architecture notes, security notes, and troubleshooting guide.
 
 ## What It Does
 
@@ -58,6 +71,8 @@ Then configure upstream endpoints and model names in:
 ```text
 ~/.costguard/.env
 ```
+
+Set `COSTGUARD_HOME` and `COSTGUARD_CLAUDE_HOME` before setup if you want all files somewhere else. This is recommended for tests, demos, and shared internal validation.
 
 ## Cline Configuration
 

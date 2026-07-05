@@ -25,7 +25,7 @@ Cost Guard maps `cg-*` aliases to upstream OpenAI-compatible model names from `.
 VS Code -> Claude Code -> http://127.0.0.1:4040 -> Cost Guard -> Anthropic-compatible upstream
 ```
 
-Claude Code is configured by merging Cost Guard environment variables and hooks into `settings.json`. Existing settings are preserved and a backup is created first.
+Claude Code is configured by merging Cost Guard environment variables and hooks into `settings.json`. Existing settings are preserved and a backup is created first when the file is not already instrumented by Cost Guard.
 
 ## Where Cost Guard Lives
 

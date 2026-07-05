@@ -2,6 +2,31 @@
 
 This runbook is for teammates who want to install, validate, operate, and remove Cost Guard safely.
 
+AI Cost Guard is a local AI gateway/middleware. It runs on your machine, receives Cline or Claude Code traffic, applies local rules and budget checks, then forwards allowed requests to the upstream provider configured in `.env`.
+
+## Safe Operating Flow
+
+1. Install the package.
+2. Run `costguard setup`.
+3. Run `costguard doctor`.
+4. Configure Cline with `costguard cline-config` or let setup merge Claude Code settings.
+5. Use `costguard status`, `costguard budget status`, and `costguard usage today` to inspect behavior.
+6. Run `costguard uninstall` to restore Claude Code settings and remove Cost Guard fragments.
+
+For tests and demos, always set:
+
+```bash
+export COSTGUARD_HOME="$(pwd)/.tmp/costguard"
+export COSTGUARD_CLAUDE_HOME="$(pwd)/.tmp/claude"
+```
+
+PowerShell:
+
+```powershell
+$env:COSTGUARD_HOME = "$(Get-Location)\.tmp\costguard"
+$env:COSTGUARD_CLAUDE_HOME = "$(Get-Location)\.tmp\claude"
+```
+
 ## Install
 
 ```bash
@@ -246,7 +271,7 @@ costguard uninstall
 costguard uninstall --dry-run
 ```
 
-Stops the proxy, restores Claude Code settings from backup when possible, removes only Cost Guard fragments otherwise, removes autostart scaffolding if present, and keeps Cost Guard home by default.
+Stops the proxy, restores Claude Code settings from the latest clean backup when possible, removes only Cost Guard fragments otherwise, removes Cost Guard backup files after cleanup, and keeps Cost Guard home by default.
 
 ## uninstall --purge
 

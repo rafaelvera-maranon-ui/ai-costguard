@@ -34,7 +34,7 @@ Before modifying Claude Code settings, Cost Guard writes a backup next to `setti
 settings.json.bak.costguard-YYYYMMDDHHMMSS
 ```
 
-Uninstall restores from the latest backup when available.
+Uninstall restores from the latest clean backup when available, ignores backups that already contain Cost Guard fragments, and removes Cost Guard backup files after successful cleanup.
 
 ## Reversible Uninstall
 
