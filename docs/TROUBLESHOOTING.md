@@ -139,17 +139,26 @@ The prices in `settings.yaml` are fallback estimates. For real cost reporting, c
 
 ```text
 COSTGUARD_PRICING_URL=
+COSTGUARD_PRICING_API_KEY_ENV=
 COSTGUARD_PRICING_API_KEY=
 COSTGUARD_PRICING_AUTH_HEADER=x-api-key
 COSTGUARD_PRICING_AUTH_SCHEME=
 ```
 
 ```powershell
+costguard pricing refresh --help
 costguard pricing refresh
 costguard pricing status
 ```
 
-Do not print or commit real pricing endpoint keys. The refresh command stores normalized model prices in `~/.costguard/config/pricing.yaml`.
+For work-PC validation, prefer `--api-key-env` so keys stay out of shell history:
+
+```powershell
+$env:PRICING_API_KEY = "<REDACTED>"
+costguard pricing refresh --endpoint https://models.example.com/v1/models --api-key-env PRICING_API_KEY --auth-header x-api-key --dry-run
+```
+
+Do not print or commit real pricing API keys. The refresh command stores normalized model prices in `~/.costguard/config/pricing.yaml` and the raw model catalog in `~/.costguard/cache/models.json`.
 
 ## Claude Code Settings Look Wrong
 

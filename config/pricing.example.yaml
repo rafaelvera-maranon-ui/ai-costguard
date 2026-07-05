@@ -1,0 +1,28 @@
+enabled: true
+mode: api
+endpoint: "https://models.example.com/v1/models"
+auth_header: "x-api-key"
+api_key_env: "PRICING_API_KEY"
+cache_ttl_hours: 24
+cache_path: "cache/models.json"
+unit: "per_1m_tokens"
+currency: "EUR"
+
+model_key_fields:
+  - systemName
+  - name
+
+price_fields:
+  input: inputPrice
+  output: outputPrice
+  cached_read: cachedTokenReadPrice
+  cached_creation: cachedTokenCreationPrice
+
+aliases:
+  cg-standard:
+    - anthropic.claude-sonnet-4-6
+    - eu.anthropic.claude-sonnet-4-6
+
+fallback:
+  enabled: true
+  cost_per_1m_tokens: 1.0

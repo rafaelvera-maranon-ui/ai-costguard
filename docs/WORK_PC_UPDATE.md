@@ -141,6 +141,7 @@ uv run costguard rules test "git diff"
 uv run costguard rules test "find ."
 
 uv run costguard pricing --help
+uv run costguard pricing refresh --help
 uv run costguard pricing status
 
 uv run costguard headroom status
@@ -156,7 +157,54 @@ Expected evidence:
 
 Do not test Cline against the model during this phase if quota is exhausted or if you only need to validate the local update.
 
-## 9. Optional Isolated Validation
+## 9. Configure Pricing Catalog
+
+CostGuard can optionally fetch and cache model prices from a provider model catalog. This does not consume LLM tokens because it calls a catalog endpoint, not chat/completions.
+
+For the company Generative Engine model catalog discovered in the POC:
+
+```text
+GET https://models.example.com/v1/models
+Header: x-api-key: <REDACTED>
+```
+
+Do not use the OpenAI-compatible inference endpoint as the pricing source:
+
+```text
+https://llm-gateway.example.com/v1
+```
+
+Use an environment variable for the key:
+
+```powershell
+$env:PRICING_API_KEY = "<REDACTED>"
+```
+
+Validate without writing files:
+
+```powershell
+uv run costguard pricing refresh --endpoint https://models.example.com/v1/models --api-key-env PRICING_API_KEY --auth-header x-api-key --dry-run
+```
+
+Refresh and cache locally:
+
+```powershell
+uv run costguard pricing refresh --endpoint https://models.example.com/v1/models --api-key-env PRICING_API_KEY --auth-header x-api-key
+uv run costguard pricing status
+```
+
+Files written under `COSTGUARD_HOME`:
+
+```text
+<COSTGUARD_HOME>\config\pricing.yaml
+<COSTGUARD_HOME>\cache\models.json
+```
+
+The API key is not written to those files. Do not paste real keys into chats, issues, logs, screenshots, or commits.
+
+If no pricing catalog is configured or cached, CostGuard continues to use fallback estimates from `settings.yaml`.
+
+## 10. Optional Isolated Validation
 
 To validate `setup` without touching `~/.costguard`, `~/.claude`, or real Claude Code configuration, use temporary paths inside the repo:
 
@@ -172,7 +220,7 @@ uv run costguard cline-config
 
 This isolated validation should not modify real Claude Code configuration. With `--tool cline`, CostGuard only prints Cline configuration and keeps the test inside `COSTGUARD_HOME`.
 
-## 10. What Not To Do
+## 11. What Not To Do
 
 - Do not run this procedure inside client repositories.
 - Do not use `pip install` directly unless a specific runbook says so.
@@ -182,7 +230,7 @@ This isolated validation should not modify real Claude Code configuration. With 
 - Do not test Cline against the model if Generative Engine quota is exhausted.
 - Do not use `Retry` in Cline when `payload blocked by secret filter` appears; use `Start New Task`.
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
 ### Case: `uv sync` Fails With `Access denied`
 
@@ -243,7 +291,7 @@ Recommended actions:
 - Try a minimal prompt such as `Say OK`.
 - Do not use `Retry` as the first diagnostic step because it may resend the same accumulated context.
 
-## 12. Final Checklist
+## 13. Final Checklist
 
 - [ ] Company fork synchronized from GitHub.
 - [ ] Local checkout updated with `git pull --ff-only`.
@@ -254,5 +302,6 @@ Recommended actions:
 - [ ] `pytest` passes.
 - [ ] `rules test` works.
 - [ ] `pricing status` works.
+- [ ] Optional pricing catalog dry-run works without printing secrets.
 - [ ] No client repositories were touched.
 - [ ] No LLM tokens were consumed during offline validations.

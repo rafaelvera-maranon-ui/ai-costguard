@@ -199,20 +199,37 @@ Fetches model pricing from the configured endpoint and writes local pricing data
 
 ```bash
 costguard pricing refresh
+costguard pricing refresh --dry-run
+costguard pricing refresh --endpoint https://models.example.com/v1/models --api-key-env PRICING_API_KEY --auth-header x-api-key
 ```
 
 Expected `.env` variables:
 
 ```text
 COSTGUARD_PRICING_URL=
+COSTGUARD_PRICING_API_KEY_ENV=
 COSTGUARD_PRICING_API_KEY=
 COSTGUARD_PRICING_AUTH_HEADER=x-api-key
 COSTGUARD_PRICING_AUTH_SCHEME=
 ```
 
-The endpoint should return a JSON model catalog. Cost Guard recognizes generic fields such as `name`, `systemName`, `inputPrice`, `outputPrice`, `cachedTokenReadPrice`, and `cachedTokenCreationPrice`. Prices are treated as cost per 1,000,000 tokens.
+For corporate validation, prefer `--api-key-env` or `COSTGUARD_PRICING_API_KEY_ENV` so the real key stays in an environment variable, not in Git, shell history, logs, or screenshots.
 
-Do not commit real pricing URLs or API keys. Keep them in the local `.env`.
+Example PowerShell:
+
+```powershell
+$env:PRICING_API_KEY = "<REDACTED>"
+costguard pricing refresh --endpoint https://models.example.com/v1/models --api-key-env PRICING_API_KEY --auth-header x-api-key --dry-run
+costguard pricing refresh --endpoint https://models.example.com/v1/models --api-key-env PRICING_API_KEY --auth-header x-api-key
+```
+
+This endpoint is a model catalog endpoint. Do not use the OpenAI-compatible inference endpoint as the pricing source.
+
+The endpoint should return a JSON model catalog. Cost Guard recognizes generic fields such as `name`, `systemName`, `inputPrice`, `outputPrice`, `cachedTokenReadPrice`, and `cachedTokenCreationPrice`. Prices are treated as cost per 1,000,000 tokens and are calculated separately for input and output tokens.
+
+Do not commit API keys or other secrets. Keep keys in local environment variables or the local `.env`; prefer `--api-key-env` for work-PC validation.
+
+`pricing refresh` does not call chat/completions and does not consume LLM tokens. It fetches a model catalog, writes the raw response to `cache/models.json`, and writes normalized prices to `config/pricing.yaml`. If no catalog is configured or available, Cost Guard falls back to local estimates from `settings.yaml`.
 
 Cost Guard budget is a local control. It is separate from upstream provider quotas. If the upstream returns an error such as `429`, that is a provider quota/rate-limit response even when `costguard budget status` shows `mode=warn` and `action=allow`.
 
