@@ -300,17 +300,27 @@ costguard headroom enable
 If missing:
 
 ```bash
-pip install <your-compatible-headroom-package>
+pip install "ai-costguard[headroom]"
 ```
 
-`costguard headroom enable` requires an importable Python module named `headroom` exposing one of:
+or install Headroom directly into the same Python environment as Cost Guard:
+
+```bash
+pip install headroom-ai
+```
+
+`costguard headroom enable` requires an importable Python module named `headroom` exposing the official library function:
+
+- `compress`
+
+For custom adapters, Cost Guard also accepts:
 
 - `compress_payload`
 - `compress_request`
 - `transform_payload`
 - `apply`
 
-Once enabled, Cost Guard applies the adapter before budget checks and upstream forwarding. If the adapter disappears or is incompatible, proxy requests fail locally with a clear Headroom error instead of silently bypassing compression.
+Once enabled, Cost Guard applies Headroom before budget checks and upstream forwarding. Use Headroom in library mode through Cost Guard first; avoid `headroom wrap cline` during initial rollout because Cost Guard already owns Cline/Claude setup, backup, and uninstall.
 
 ## headroom disable
 

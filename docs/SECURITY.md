@@ -60,7 +60,7 @@ Cache is disabled by default. Even when enabled, the MVP stores hashes, metadata
 
 ## Headroom Risks
 
-Headroom can transform request payloads before they reach the upstream model. It is disabled by default and requires a compatible external adapter. Review that adapter's code, data handling, and retention behavior before enabling it in a corporate environment.
+Headroom can transform request payloads before they reach the upstream model. It is disabled by default and requires the optional `headroom-ai` package or a compatible local adapter. Review Headroom's data handling, model downloads, local cache behavior, and corporate TLS requirements before enabling it in a work environment.
 
 ## Do Not Commit Secrets
 

@@ -92,7 +92,7 @@ These pieces are available but disabled or opt-in by default:
 | Component | Default | Purpose |
 | --- | --- | --- |
 | Cache | Disabled | Local scaffold for basic or semantic cache modes. |
-| Headroom | Disabled | Optional request compression adapter. Requires an importable `headroom` module exposing `compress_payload`, `compress_request`, `transform_payload`, or `apply`. |
+| Headroom | Disabled | Optional request compression via `headroom-ai` in library mode. Cost Guard calls `headroom.compress(messages, model=...)` when installed and enabled. |
 | Pricing refresh | Not run | `costguard pricing refresh` reads `COSTGUARD_PRICING_URL` and caches provider model prices locally. |
 | Project attach | Not run | `costguard attach` writes project-local Claude metadata only when explicitly requested. |
 | Purge uninstall | Not run | `costguard uninstall --purge --yes` deletes `COSTGUARD_HOME`; plain uninstall keeps it. |
@@ -125,7 +125,7 @@ These pieces are available but disabled or opt-in by default:
 - It does not expose the proxy outside localhost unless you explicitly choose another host.
 - It does not modify project repos unless you run `costguard attach`.
 - It does not store real API keys in Git.
-- It does not bundle Headroom or require it for the base product.
+- It does not require Headroom for the base product; install `ai-costguard[headroom]` or `headroom-ai` separately to enable it.
 - It does not apply Headroom compression unless a compatible adapter is installed and explicitly enabled.
 
 ## Install

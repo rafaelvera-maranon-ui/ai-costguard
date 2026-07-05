@@ -70,16 +70,20 @@ The MVP includes commands and local storage structure. A vector engine can be ad
 
 ## Headroom
 
-Headroom is an optional request compression adapter. It is not a core dependency and is disabled by default. When enabled, Cost Guard imports a compatible Python module named `headroom` and applies it to the request payload after the local secret filter and model alias mapping, but before budget estimation and upstream forwarding.
+Headroom is an optional request compression layer. It is not a core dependency and is disabled by default. When enabled, Cost Guard imports the Python module installed by `headroom-ai` and applies it after the local secret filter and model alias mapping, but before budget estimation and upstream forwarding.
 
-A compatible adapter exposes one of these functions:
+The preferred integration is the official library API:
+
+- `compress(messages, model=...)`
+
+Cost Guard passes the request `messages` list and the already-resolved upstream model name, then writes the returned `result.messages` back into the payload. For local/custom adapters, Cost Guard also supports these payload-level functions:
 
 - `compress_payload(payload, ...)`
 - `compress_request(payload, ...)`
 - `transform_payload(payload, ...)`
 - `apply(payload, ...)`
 
-The function may return a transformed payload dictionary or mutate the payload in place. Cost Guard passes optional `client` and `home` context when the adapter accepts it. If Headroom is enabled but no compatible adapter is available, the proxy fails with a clear local error rather than silently bypassing compression.
+Payload-level functions may return a transformed payload dictionary or mutate the payload in place. Cost Guard passes optional `client` and `home` context when the adapter accepts it. If Headroom is enabled but no compatible adapter is available, the proxy fails with a clear local error rather than silently bypassing compression.
 
 ## Proxy MVP
 
