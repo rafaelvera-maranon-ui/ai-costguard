@@ -133,8 +133,6 @@ def _is_costguard_hook(entry: dict[str, Any]) -> bool:
 
 def contains_costguard_settings(settings: dict[str, Any]) -> bool:
     env = settings.get("env", {}) or {}
-    if env.get("ANTHROPIC_BASE_URL") == "http://127.0.0.1:4040":
-        return True
     if env.get("ANTHROPIC_AUTH_TOKEN") == "sk-costguard-local":
         return True
     if str(env.get("ANTHROPIC_MODEL", "")).startswith("cg-"):

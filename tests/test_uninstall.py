@@ -39,6 +39,28 @@ def test_repeated_setup_uninstall_restores_original_claude_settings(isolated_env
     assert list(claude_home.glob("settings.json.bak.costguard-*")) == []
 
 
+def test_setup_backs_up_existing_localhost_claude_config(isolated_env):
+    claude_home = isolated_env["claude_home"]
+    claude_home.mkdir(parents=True)
+    original = {
+        "env": {
+            "ANTHROPIC_BASE_URL": "http://127.0.0.1:4040",
+            "ANTHROPIC_AUTH_TOKEN": "existing-local-token",
+            "ANTHROPIC_MODEL": "existing-model",
+        }
+    }
+    settings_path = claude_home / "settings.json"
+    settings_path.write_text(json.dumps(original), encoding="utf-8")
+
+    setup_costguard(tool="claude-code", non_interactive=True)
+    assert list(claude_home.glob("settings.json.bak.costguard-*")) != []
+
+    uninstall_costguard()
+    restored = json.loads(settings_path.read_text(encoding="utf-8"))
+    assert restored == original
+    assert list(claude_home.glob("settings.json.bak.costguard-*")) == []
+
+
 def test_uninstall_ignores_costguard_contaminated_backup(isolated_env):
     claude_home = isolated_env["claude_home"]
     claude_home.mkdir(parents=True)

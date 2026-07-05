@@ -34,7 +34,7 @@ Before modifying Claude Code settings, Cost Guard writes a backup next to `setti
 settings.json.bak.costguard-YYYYMMDDHHMMSS
 ```
 
-Uninstall restores from the latest clean backup when available, ignores backups that already contain Cost Guard fragments, and removes Cost Guard backup files after successful cleanup.
+Uninstall restores from the latest clean backup when available, ignores backups that already contain Cost Guard fragments, and removes Cost Guard backup files after successful cleanup. A localhost `ANTHROPIC_BASE_URL` alone is not treated as Cost Guard; existing user config still gets backed up before setup changes it.
 
 ## Reversible Uninstall
 

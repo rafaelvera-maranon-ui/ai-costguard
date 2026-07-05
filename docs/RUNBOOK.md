@@ -43,6 +43,8 @@ pipx install git+https://github.com/your-org/ai-costguard.git
 
 Creates Cost Guard home, `.env`, `settings.yaml`, SQLite, rules, hooks, safe commands, logs, cache folders, and Claude Code settings when enabled.
 
+When Claude Code is enabled, the first setup on a real workstation backs up the current `settings.json` before adding Cost Guard env vars and hooks. Re-running setup does not replace that clean pre-Cost-Guard backup with an already instrumented file.
+
 ```bash
 costguard setup
 costguard setup --tool both --daily-budget 5 --monthly-budget 100 --budget-mode warn --non-interactive
@@ -272,6 +274,8 @@ costguard uninstall --dry-run
 ```
 
 Stops the proxy, restores Claude Code settings from the latest clean backup when possible, removes only Cost Guard fragments otherwise, removes Cost Guard backup files after cleanup, and keeps Cost Guard home by default.
+
+This is the intended revert path for a teammate who tries Cost Guard on a work machine and decides not to keep it: run `costguard uninstall`, then Claude Code should be back to the settings it had before the first Cost Guard setup.
 
 ## uninstall --purge
 
