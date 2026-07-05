@@ -37,6 +37,16 @@ docs/prompts/work-pc-validation-prompt.es.md
 
 It asks the assistant to run the isolated smoke first, avoid printing secrets, install `costguard` as a global command with `uv tool install --editable ... --link-mode=copy` when available, configure only Cline before Claude Code, and document Windows PATH or OneDrive issues.
 
+## Work-PC Update Procedure
+
+For updating an existing corporate work-PC checkout from a company GitHub fork without touching client repositories or consuming LLM tokens, use:
+
+```text
+docs/WORK_PC_UPDATE.md
+```
+
+It covers Sync fork from GitHub web, `git pull --ff-only`, stopping CostGuard before recreating `.venv`, `uv sync --extra dev --extra headroom`, and offline validations.
+
 ## Install
 
 ```bash
