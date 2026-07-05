@@ -51,7 +51,7 @@ Cost Guard helps monitor and improve usage efficiency through local controls. Th
 | Secret guardrails | Default rules block `.env`, key-like files, Terraform state/vars, and secret-like payloads. |
 | Debug clarity | Docs distinguish local Cost Guard budget decisions from upstream quota errors such as HTTP 429. |
 | Local audit trail | SQLite stores metadata by default, not prompt/response content. |
-| Optional Headroom check | `costguard headroom status` shows whether a compatible Headroom package is installed and enabled; runtime compression is not wired in the current version. |
+| Optional Headroom compression | When a compatible Headroom adapter is installed and enabled, the proxy transforms request payloads before budget checks and upstream forwarding. |
 
 The improvement loop is deliberately simple: inspect usage, identify noisy patterns, tune YAML rules/budgets/model aliases, refresh pricing when available, and rerun. It is an operating guardrail, not an autonomous optimization system.
 
@@ -92,7 +92,7 @@ These pieces are available but disabled or opt-in by default:
 | Component | Default | Purpose |
 | --- | --- | --- |
 | Cache | Disabled | Local scaffold for basic or semantic cache modes. |
-| Headroom | Disabled | Optional integration scaffold. The CLI can detect and toggle a compatible `headroom` package, but current proxy traffic is not compressed by Headroom yet. |
+| Headroom | Disabled | Optional request compression adapter. Requires an importable `headroom` module exposing `compress_payload`, `compress_request`, `transform_payload`, or `apply`. |
 | Pricing refresh | Not run | `costguard pricing refresh` reads `COSTGUARD_PRICING_URL` and caches provider model prices locally. |
 | Project attach | Not run | `costguard attach` writes project-local Claude metadata only when explicitly requested. |
 | Purge uninstall | Not run | `costguard uninstall --purge --yes` deletes `COSTGUARD_HOME`; plain uninstall keeps it. |
@@ -113,6 +113,7 @@ These pieces are available but disabled or opt-in by default:
 - Helps reduce avoidable token usage by rewriting noisy commands and limiting oversized outputs.
 - Provides a simple feedback loop to tune usage patterns with `usage`, `budget`, `rules`, and optional `pricing` data.
 - Separates local budget decisions from upstream provider quota/rate-limit errors.
+- Applies optional Headroom request compression when a compatible adapter is installed and enabled.
 
 ## What It Does Not Do
 
@@ -124,8 +125,8 @@ These pieces are available but disabled or opt-in by default:
 - It does not expose the proxy outside localhost unless you explicitly choose another host.
 - It does not modify project repos unless you run `costguard attach`.
 - It does not store real API keys in Git.
-- It does not require Headroom; the current Headroom commands only manage availability/status and an enable flag.
-- It does not apply Headroom compression to proxy requests yet.
+- It does not bundle Headroom or require it for the base product.
+- It does not apply Headroom compression unless a compatible adapter is installed and explicitly enabled.
 
 ## Install
 

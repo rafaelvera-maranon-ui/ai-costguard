@@ -70,7 +70,16 @@ The MVP includes commands and local storage structure. A vector engine can be ad
 
 ## Headroom
 
-Headroom is an optional integration scaffold. It is not a core dependency and is disabled by default. The current CLI can detect whether a compatible `headroom` package is installed and can persist an enable flag, but the proxy does not apply Headroom compression to runtime requests yet.
+Headroom is an optional request compression adapter. It is not a core dependency and is disabled by default. When enabled, Cost Guard imports a compatible Python module named `headroom` and applies it to the request payload after the local secret filter and model alias mapping, but before budget estimation and upstream forwarding.
+
+A compatible adapter exposes one of these functions:
+
+- `compress_payload(payload, ...)`
+- `compress_request(payload, ...)`
+- `transform_payload(payload, ...)`
+- `apply(payload, ...)`
+
+The function may return a transformed payload dictionary or mutate the payload in place. Cost Guard passes optional `client` and `home` context when the adapter accepts it. If Headroom is enabled but no compatible adapter is available, the proxy fails with a clear local error rather than silently bypassing compression.
 
 ## Proxy MVP
 
@@ -87,6 +96,6 @@ It validates the local API key, applies a basic secret filter, checks budgets, m
 - Cost estimates are approximate.
 - Streaming support is not implemented in the MVP.
 - Semantic cache is scaffolded, not a full vector implementation.
-- Headroom is scaffolded for status/configuration, not wired into proxy request transformation.
+- Headroom requires a compatible external adapter; no adapter is bundled in the base package.
 - Cline still requires manual configuration.
 - Upstream-specific edge cases may need adapter improvements.

@@ -289,7 +289,7 @@ costguard cache clear
 costguard headroom status
 ```
 
-Shows whether a compatible Headroom package is available and whether the local enable flag is set. In the current version this is a readiness/status check only; proxy requests are not compressed by Headroom yet.
+Shows whether a compatible Headroom package is available, whether the local enable flag is set, and which adapter function will be used.
 
 ## headroom enable
 
@@ -300,10 +300,17 @@ costguard headroom enable
 If missing:
 
 ```bash
-pip install "ai-costguard[headroom]"
+pip install <your-compatible-headroom-package>
 ```
 
-This command only enables the local flag after the package is available. It does not change runtime proxy behavior until a Headroom adapter is wired into Cost Guard.
+`costguard headroom enable` requires an importable Python module named `headroom` exposing one of:
+
+- `compress_payload`
+- `compress_request`
+- `transform_payload`
+- `apply`
+
+Once enabled, Cost Guard applies the adapter before budget checks and upstream forwarding. If the adapter disappears or is incompatible, proxy requests fail locally with a clear Headroom error instead of silently bypassing compression.
 
 ## headroom disable
 
