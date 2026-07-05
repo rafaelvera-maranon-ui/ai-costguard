@@ -9,7 +9,7 @@ Personal/original repo updated
   -> Sync fork in company GitHub
   -> git pull in local company checkout
   -> uv sync --extra dev
-  -> refresh the global costguard command
+  -> refresh the global costguard command with the standard update command
   -> offline validations
 ```
 
@@ -116,7 +116,9 @@ Headroom is not required for the standard CostGuard CLI update.
 
 ## 7. Refresh The Global costguard Command
 
-If the work PC uses `costguard` as a global command, refresh that command after pulling new code. This keeps day-to-day commands consistent with the updated repo and avoids falling back to an older installation.
+If the work PC uses `costguard` as a global command, refresh that command after every repo update. This is the standard CLI update step, regardless of whether the change was for setup, pricing, rules, Headroom, docs, or any other future iteration.
+
+This keeps day-to-day commands consistent with the updated repo and avoids falling back to an older installation.
 
 From the local `ai-costguard` checkout:
 
