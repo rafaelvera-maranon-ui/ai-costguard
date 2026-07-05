@@ -330,7 +330,7 @@ def pricing_configure(
     api_key_env: Optional[str] = typer.Option(
         None,
         "--api-key-env",
-        help="Environment variable containing the pricing API key. The key itself is not stored.",
+        help="Shell or local .env variable containing the pricing API key. The key itself is not stored.",
     ),
     auth_header: str = typer.Option("x-api-key", "--auth-header", help="Authentication header name."),
     auth_scheme: Optional[str] = typer.Option(None, "--auth-scheme", help="Optional auth scheme prefix."),
@@ -359,7 +359,7 @@ def pricing_refresh(
     api_key_env: Optional[str] = typer.Option(
         None,
         "--api-key-env",
-        help="Environment variable containing the pricing API key. The key is never printed or cached.",
+        help="Shell or local .env variable containing the pricing API key. The key is never printed or cached.",
     ),
     auth_header: Optional[str] = typer.Option(
         None,

@@ -101,6 +101,8 @@ These pieces are available but disabled or opt-in by default:
 | Non-local bind host | Not used | The proxy defaults to `127.0.0.1` and warns if another host is selected. |
 | Content logging | Disabled | Metadata is logged by default; prompt/response content is not stored unless explicitly enabled. |
 
+`OPENAI_UPSTREAM_BASE_URL` and `ANTHROPIC_UPSTREAM_BASE_URL` are inference endpoints used to call models. `COSTGUARD_PRICING_URL` is a separate catalog endpoint used only to fetch model prices. A company may use the same API key for both, or provide different keys; configure that locally in `.env`.
+
 ## What It Does
 
 - Runs a localhost proxy on `127.0.0.1:4040`.

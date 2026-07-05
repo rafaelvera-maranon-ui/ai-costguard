@@ -110,6 +110,35 @@ def test_pricing_refresh_uses_endpoint_api_key_env_and_writes_cache(isolated_env
     assert pricing.model_pricing("region.provider.model-large", isolated_env["home"])["input_per_million"] == 3.3
 
 
+def test_pricing_refresh_can_reuse_local_env_key_reference(isolated_env, monkeypatch):
+    setup_costguard(tool="cline", non_interactive=True)
+    home = isolated_env["home"]
+    env_file = paths.env_path(home)
+    env_file.write_text(
+        env_file.read_text(encoding="utf-8")
+        + "\n"
+        + "OPENAI_UPSTREAM_API_KEY=shared-local-key\n"
+        + "COSTGUARD_PRICING_URL=https://models.example.test/v1/models\n"
+        + "COSTGUARD_PRICING_API_KEY_ENV=OPENAI_UPSTREAM_API_KEY\n",
+        encoding="utf-8",
+    )
+    captured: dict[str, object] = {}
+    payload = [{"name": "provider.model-large", "inputPrice": 3.3, "outputPrice": 16.5}]
+
+    def fake_get(url: str, headers: dict[str, str], timeout: float) -> httpx.Response:
+        captured["url"] = url
+        captured["headers"] = headers
+        return httpx.Response(200, json=payload, request=httpx.Request("GET", url))
+
+    monkeypatch.setattr(pricing.httpx, "get", fake_get)
+
+    result = pricing.refresh(home, dry_run=True)
+
+    assert result["models"] == 1
+    assert captured["url"] == "https://models.example.test/v1/models"
+    assert captured["headers"] == {"accept": "application/json", "x-api-key": "shared-local-key"}
+
+
 def test_pricing_refresh_dry_run_does_not_write_cache(isolated_env, monkeypatch):
     setup_costguard(tool="cline", non_interactive=True)
     payload = [{"name": "model-a", "inputPrice": 1, "outputPrice": 2}]

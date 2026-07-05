@@ -146,9 +146,9 @@ def _auth_headers(
 ) -> dict[str, str]:
     headers = {"accept": "application/json"}
     key_env = api_key_env or env.get("COSTGUARD_PRICING_API_KEY_ENV", "")
-    key = os.environ.get(key_env, "") if key_env else env.get("COSTGUARD_PRICING_API_KEY", "")
+    key = (os.environ.get(key_env, "") or env.get(key_env, "")) if key_env else env.get("COSTGUARD_PRICING_API_KEY", "")
     if key_env and not key:
-        raise RuntimeError(f"Pricing API key environment variable is not set: {key_env}")
+        raise RuntimeError(f"Pricing API key variable is not set: {key_env}")
     header = auth_header or env.get("COSTGUARD_PRICING_AUTH_HEADER", "x-api-key")
     scheme = auth_scheme if auth_scheme is not None else env.get("COSTGUARD_PRICING_AUTH_SCHEME", "")
     if key and header:

@@ -190,11 +190,11 @@ Shows whether a provider pricing endpoint is configured and how many model price
 costguard pricing status
 ```
 
-By default, Cost Guard uses simple local fallback estimates from `settings.yaml`. For a real corporate deployment, configure a model pricing endpoint in `.env` and refresh the local cache.
+By default, Cost Guard uses simple local fallback estimates from `settings.yaml`. For a real corporate deployment, configure a model pricing catalog endpoint in `.env` and refresh the local cache.
 
 ## pricing refresh
 
-Fetches model pricing from the configured endpoint and writes local pricing data to `config/pricing.yaml`.
+Fetches model pricing from the configured catalog endpoint and writes local pricing data to `config/pricing.yaml`.
 
 ```bash
 costguard pricing refresh
@@ -206,6 +206,11 @@ costguard pricing refresh --endpoint https://models.example.com/v1/models --api-
 Expected `.env` variables:
 
 ```text
+# Model inference endpoint and key. Used for chat/completions or messages.
+OPENAI_UPSTREAM_BASE_URL=
+OPENAI_UPSTREAM_API_KEY=
+
+# Pricing catalog endpoint and auth. Used only to fetch model prices.
 COSTGUARD_PRICING_URL=
 COSTGUARD_PRICING_API_KEY_ENV=
 COSTGUARD_PRICING_API_KEY=
@@ -213,7 +218,9 @@ COSTGUARD_PRICING_AUTH_HEADER=x-api-key
 COSTGUARD_PRICING_AUTH_SCHEME=
 ```
 
-For corporate validation, prefer `--api-key-env` or `COSTGUARD_PRICING_API_KEY_ENV` so the real key stays in an environment variable, not in Git, shell history, logs, or screenshots.
+The inference endpoint and the pricing endpoint are different services even if your company uses the same API key for both. `COSTGUARD_PRICING_API_KEY_ENV` names the shell or local `.env` variable that contains the key for the pricing catalog. If the same key is valid for both endpoints, you can set it to `OPENAI_UPSTREAM_API_KEY` or `ANTHROPIC_UPSTREAM_API_KEY`. If pricing has a separate key, use a separate variable such as `PRICING_API_KEY`.
+
+For corporate validation, prefer `--api-key-env` or `COSTGUARD_PRICING_API_KEY_ENV` so the real key does not need to be duplicated in Git, shell history, logs, or screenshots.
 
 Example PowerShell:
 

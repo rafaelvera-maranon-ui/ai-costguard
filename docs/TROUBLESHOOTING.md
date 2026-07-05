@@ -135,15 +135,20 @@ This avoids hardlink assumptions and keeps the install local to the machine.
 
 ## Pricing Catalog
 
-The prices in `settings.yaml` are fallback estimates. For real cost reporting, configure a provider model catalog endpoint in `.env` and refresh local pricing:
+The prices in `settings.yaml` are fallback estimates. For real cost reporting, configure a provider model catalog endpoint in `.env` and refresh local pricing. This pricing catalog endpoint is separate from the model inference endpoint used for chat/completions or messages:
 
 ```text
+OPENAI_UPSTREAM_BASE_URL=
+OPENAI_UPSTREAM_API_KEY=
+
 COSTGUARD_PRICING_URL=
 COSTGUARD_PRICING_API_KEY_ENV=
 COSTGUARD_PRICING_API_KEY=
 COSTGUARD_PRICING_AUTH_HEADER=x-api-key
 COSTGUARD_PRICING_AUTH_SCHEME=
 ```
+
+If the same company API key works for both endpoints, set `COSTGUARD_PRICING_API_KEY_ENV=OPENAI_UPSTREAM_API_KEY` or `COSTGUARD_PRICING_API_KEY_ENV=ANTHROPIC_UPSTREAM_API_KEY`. If pricing has its own key, point it to a separate shell or local `.env` variable such as `PRICING_API_KEY`.
 
 ```powershell
 costguard pricing refresh --help

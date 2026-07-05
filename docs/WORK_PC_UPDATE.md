@@ -210,6 +210,13 @@ Do not test Cline against the model during this phase if quota is exhausted or i
 
 CostGuard can optionally fetch and cache model prices from a provider model catalog. This does not consume LLM tokens because it calls a catalog endpoint, not chat/completions.
 
+There are two different endpoint types:
+
+- Model inference endpoint: used by Cline/Claude Code through CostGuard to call the model.
+- Pricing catalog endpoint: used by `costguard pricing refresh` to fetch model metadata and prices.
+
+Your company may use the same API key for both endpoints, or it may provide separate keys. Configure whatever your platform team provides in the local `.env`; do not commit those values.
+
 For a company model catalog, use the endpoint provided by your platform team:
 
 ```text
@@ -223,10 +230,22 @@ Do not use an OpenAI-compatible inference endpoint as the pricing source:
 https://llm-gateway.example.com/v1
 ```
 
-Use an environment variable for the key:
+Use a shell or local `.env` variable for the key:
 
 ```powershell
 $env:PRICING_API_KEY = "<REDACTED>"
+```
+
+If the pricing catalog uses the same key as the inference endpoint already stored in local `.env`, set:
+
+```text
+COSTGUARD_PRICING_API_KEY_ENV=OPENAI_UPSTREAM_API_KEY
+```
+
+or, for Anthropic-compatible upstreams:
+
+```text
+COSTGUARD_PRICING_API_KEY_ENV=ANTHROPIC_UPSTREAM_API_KEY
 ```
 
 Store non-secret pricing configuration locally under `COSTGUARD_HOME`:
