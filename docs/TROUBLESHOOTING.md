@@ -40,6 +40,35 @@ Model ID: cg-standard
 
 Also confirm `OPENAI_UPSTREAM_BASE_URL`, `OPENAI_UPSTREAM_API_KEY`, and model variables are set in `.env`.
 
+## Cline Payload Blocked By Secret Filter
+
+If Cline shows an error like:
+
+```text
+payload blocked by secret filter
+```
+
+do not assume the latest user message is the problem. Cline may be resending accumulated task context that contains credentials, `.env` content, terminal output, or previous discussion of secrets.
+
+Recommended check:
+
+1. Start a new Cline task.
+2. Do not use Retry on the old task.
+3. Send a minimal prompt such as `Di OK`.
+4. Check `costguard usage today`.
+
+If the new task works, document the likely cause as accumulated Cline context blocked by the corporate secret filter. Avoid adding `.env`, `.env.*`, `databricks.yml`, key files, token files, `.cline`, `.vscode`, or credential screenshots as Cline context.
+
+## Upstream 429 Is Not Local Budget
+
+If Cline or the proxy returns an upstream error like:
+
+```text
+[OPENAI] 429 true
+```
+
+and `costguard budget status` still shows `mode=warn` and `action=allow`, the request was allowed by Cost Guard and rejected by the upstream provider quota/rate limit. Cost Guard budget controls local spend policy; it does not increase corporate provider quotas.
+
 ## Claude Code Does Not Connect
 
 Run:
@@ -103,6 +132,24 @@ uv tool install --editable "." --link-mode=copy
 ```
 
 This avoids hardlink assumptions and keeps the install local to the machine.
+
+## Pricing Catalog
+
+The prices in `settings.yaml` are fallback estimates. For real cost reporting, configure a provider model catalog endpoint in `.env` and refresh local pricing:
+
+```text
+COSTGUARD_PRICING_URL=
+COSTGUARD_PRICING_API_KEY=
+COSTGUARD_PRICING_AUTH_HEADER=x-api-key
+COSTGUARD_PRICING_AUTH_SCHEME=
+```
+
+```powershell
+costguard pricing refresh
+costguard pricing status
+```
+
+Do not print or commit real pricing endpoint keys. The refresh command stores normalized model prices in `~/.costguard/config/pricing.yaml`.
 
 ## Claude Code Settings Look Wrong
 

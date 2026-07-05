@@ -190,7 +190,12 @@ class CostGuardHandler(BaseHTTPRequestHandler):
                 "input_chars": input_chars,
                 "output_chars": output_chars,
                 "estimated_tokens": budget.estimate_tokens(input_chars, output_chars),
-                "estimated_cost": budget.estimate_cost(model_alias, budget.estimate_tokens(input_chars, output_chars), self.home),
+                "estimated_cost": budget.estimate_cost(
+                    model_alias,
+                    budget.estimate_tokens(input_chars),
+                    self.home,
+                    output_tokens=budget.estimate_tokens(output_chars),
+                ),
                 "budget_action": decision.action,
                 "active_budget": decision.mode,
                 "security_event": security_event,

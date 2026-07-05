@@ -10,6 +10,7 @@ from rich.table import Table
 
 from . import __version__, budget as budget_mod, cache as cache_mod, cline, config, doctor as doctor_mod
 from . import headroom as headroom_mod, paths, proxy, rules, usage as usage_mod
+from . import pricing as pricing_mod
 from .claude_code import update_anthropic_model
 from .install import attach_project, setup_costguard
 from .uninstall import uninstall_costguard
@@ -21,11 +22,13 @@ rules_app = typer.Typer(help="Inspect and test rules.")
 usage_app = typer.Typer(help="Show local usage metadata.")
 cache_app = typer.Typer(help="Manage optional cache.")
 headroom_app = typer.Typer(help="Manage optional Headroom integration.")
+pricing_app = typer.Typer(help="Manage model pricing catalog.")
 app.add_typer(budget_app, name="budget")
 app.add_typer(rules_app, name="rules")
 app.add_typer(usage_app, name="usage")
 app.add_typer(cache_app, name="cache")
 app.add_typer(headroom_app, name="headroom")
+app.add_typer(pricing_app, name="pricing")
 console = Console()
 
 
@@ -302,6 +305,27 @@ def headroom_disable() -> None:
 
 
 def _print_headroom(data: dict[str, object]) -> None:
+    table = Table("Metric", "Value")
+    for key, value in data.items():
+        table.add_row(escape(key.replace("_", " ")), escape(str(value)))
+    console.print(table)
+
+
+@pricing_app.command("status")
+def pricing_status() -> None:
+    _print_pricing(pricing_mod.status())
+
+
+@pricing_app.command("refresh")
+def pricing_refresh() -> None:
+    try:
+        _print_pricing(pricing_mod.refresh())
+    except Exception as exc:
+        console.print(f"[red]{escape(str(exc))}[/red]")
+        raise typer.Exit(code=1) from exc
+
+
+def _print_pricing(data: dict[str, object]) -> None:
     table = Table("Metric", "Value")
     for key, value in data.items():
         table.add_row(escape(key.replace("_", " ")), escape(str(value)))

@@ -7,6 +7,15 @@ Esta version incorpora aprendizajes reales de Windows corporativo: `python` pued
 ````text
 Quiero instalar y validar el repo `ai-costguard` en mi ordenador de trabajo de forma controlada y sin exponer secretos.
 
+IMPORTANTE SOBRE CLINE Y CONTEXTO:
+- Empieza siempre con una task nueva en Cline para esta validacion.
+- No uses Retry sobre conversaciones anteriores si aparece un error de seguridad.
+- No reutilices una task que haya contenido referencias a credenciales, secretos, tokens, API keys, `.env`, Databricks tokens, Azure secrets o configuracion corporativa sensible.
+- Si aparece el error `payload blocked by secret filter`, asume primero que puede deberse a contexto acumulado enviado por Cline, no necesariamente a Cost Guard.
+- Antes de diagnosticar Cost Guard, valida con una task nueva y un prompt minimo: `Di OK`.
+- No cargues como contexto archivos `.env`, `.env.*`, `databricks.yml`, `.pem`, `.key`, `.pfx`, `.p12`, carpetas `.cline`, `.vscode` ni ficheros de credenciales.
+- No incluyas en respuestas ni en prompts valores reales de secretos. Usa siempre placeholders como `<REDACTED>`.
+
 No ejecutes nada sobre mi HOME real hasta que yo lo confirme explicitamente.
 
 Reglas de seguridad:
@@ -35,6 +44,8 @@ Resume:
 - como se desinstala
 - que ficheros locales toca
 - que componentes son obligatorios y cuales opcionales
+- que contexto envia Cline y como evitar que una task previa contamine nuevas pruebas
+- como actuar si aparece `payload blocked by secret filter`
 
 ## FASE 1 - Detectar Python y uv disponibles
 
@@ -155,6 +166,23 @@ Todos deben pasar.
 
 En PowerShell no uses `&&`; ejecuta comandos separados o usa `;`.
 
+Prueba adicional obligatoria para validar proxy OpenAI Compatible sin Cline:
+- Arranca `costguard start` en una terminal separada si no esta arrancado.
+- Ejecuta una llamada minima contra `http://127.0.0.1:4040/v1/chat/completions` usando:
+  - model: `cg-standard`
+  - message: `Di OK`
+  - API key local: `sk-costguard-local`
+- Comprueba que responde correctamente.
+- Despues comprueba `costguard usage today`.
+
+Prueba adicional obligatoria para validar Cline:
+- Abre una task nueva en Cline.
+- No uses Retry.
+- Envia solo: `Di OK`.
+- Comprueba que responde `OK`.
+- Despues comprueba `costguard usage today`.
+- Si funciona en task nueva pero no en task anterior, documenta que la causa probable era contexto acumulado de Cline bloqueado por el secret filter corporativo.
+
 ## FASE 5 - Setup real SOLO para Cline
 
 Si todos los smoke tests estan OK, limpia las variables de entorno temporales y ejecuta el setup real:
@@ -185,6 +213,10 @@ Variables habituales:
 OPENAI_UPSTREAM_BASE_URL=<base URL corporativa>
 OPENAI_UPSTREAM_API_KEY=<API key corporativa>
 OPENAI_MODEL_STANDARD=<nombre del modelo>
+COSTGUARD_PRICING_URL=<endpoint catalogo modelos/precios>
+COSTGUARD_PRICING_API_KEY=<API key catalogo si aplica>
+COSTGUARD_PRICING_AUTH_HEADER=x-api-key
+COSTGUARD_PRICING_AUTH_SCHEME=
 ```
 
 No imprimas los valores reales.
@@ -195,9 +227,19 @@ No imprimas los valores reales.
 costguard doctor
 costguard status
 costguard cline-config
+costguard pricing status
 ```
 
 El doctor debe mostrar 0 ERRORs. Los WARNs de upstream deben desaparecer tras anadir credenciales.
+
+Si `COSTGUARD_PRICING_URL` esta configurado, refresca precios:
+
+```powershell
+costguard pricing refresh
+costguard pricing status
+```
+
+El pricing endpoint debe ser generico y de la empresa/proveedor que se este usando. No hardcodees precios reales ni endpoints reales en el repo.
 
 ## Configuracion de Cline
 
@@ -244,6 +286,7 @@ Valida que:
 - No ha guardado prompts/respuestas por defecto.
 - El budget funciona.
 - Cline sigue operativo.
+- Si aparece un error `429`, separa el diagnostico: puede ser cuota/rate limit del upstream aunque Cost Guard muestre `action=allow`.
 
 ## Claude Code, opcional
 
@@ -269,6 +312,11 @@ Al terminar, resume:
 - tests ejecutados y resultado
 - smoke tests ejecutados y resultado
 - si `costguard` quedo disponible como comando global
+- prueba directa al proxy local
+- prueba desde Cline en task nueva
+- si hubo errores de `payload blocked by secret filter`
+- si esos errores se resolvieron empezando una task nueva
+- si hubo errores `429` del upstream y como se diferenciaron del budget local
 - si Cline quedo configurado
 - si Claude Code quedo configurado
 - como arrancar Cost Guard cada dia

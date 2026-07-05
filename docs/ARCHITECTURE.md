@@ -35,6 +35,7 @@ End-user files live under `~/.costguard`:
 .env
 costguard.db
 config/settings.yaml
+config/pricing.yaml
 rules/default.yaml
 rules/user.yaml
 hooks/
@@ -55,6 +56,12 @@ Cost Guard is designed as an external local guard. It does not modify a project 
 
 SQLite is local, file-based, zero-service, and enough for usage metadata, budget checks, and audit events. It keeps setup simple and avoids Docker or managed infrastructure.
 
+## Pricing Catalog
+
+Cost Guard ships with fallback local cost estimates so the budget feature works without a corporate pricing service. For real deployments, configure `COSTGUARD_PRICING_URL` in `.env` and run `costguard pricing refresh`. The refresh reads a generic model catalog with fields such as `name`, `systemName`, `inputPrice`, and `outputPrice`, then stores normalized prices in `config/pricing.yaml`.
+
+This is intentionally provider-neutral. A company can point Cost Guard at its own OpenAI-compatible, Anthropic-compatible, Bedrock-backed, or internal GenAI catalog as long as it exposes model names and input/output prices. Provider quotas and HTTP 429 responses remain upstream controls; Cost Guard budget remains a local policy.
+
 ## Semantic Cache
 
 The semantic/vector cache is optional. It is intended to store safe summaries and metadata so repeated repository context, docs, errors, logs, or large files do not need to be resent. It does not replace SQLite, and it is disabled by default.
@@ -73,7 +80,7 @@ The proxy exposes:
 - `/v1/chat/completions` for OpenAI-compatible Cline traffic
 - `/v1/messages` for Anthropic-compatible Claude Code traffic
 
-It validates the local API key, applies a basic secret filter, checks budgets, maps model aliases, forwards to the configured upstream, applies output limits where possible, and stores metadata in SQLite.
+It validates the local API key, applies a basic secret filter, checks budgets, maps model aliases, estimates cost from local pricing or fallback settings, forwards to the configured upstream, applies output limits where possible, and stores metadata in SQLite.
 
 ## Limitations
 

@@ -173,6 +173,39 @@ Modes:
 - `block-premium`: block `cg-strong` and `cg-sonnet`.
 - `block-all`: block new calls.
 
+## pricing status
+
+Shows whether a provider pricing endpoint is configured and how many model prices are cached locally.
+
+```bash
+costguard pricing status
+```
+
+By default, Cost Guard uses simple local fallback estimates from `settings.yaml`. For a real corporate deployment, configure a model pricing endpoint in `.env` and refresh the local cache.
+
+## pricing refresh
+
+Fetches model pricing from the configured endpoint and writes local pricing data to `config/pricing.yaml`.
+
+```bash
+costguard pricing refresh
+```
+
+Expected `.env` variables:
+
+```text
+COSTGUARD_PRICING_URL=
+COSTGUARD_PRICING_API_KEY=
+COSTGUARD_PRICING_AUTH_HEADER=x-api-key
+COSTGUARD_PRICING_AUTH_SCHEME=
+```
+
+The endpoint should return a JSON model catalog. Cost Guard recognizes generic fields such as `name`, `systemName`, `inputPrice`, `outputPrice`, `cachedTokenReadPrice`, and `cachedTokenCreationPrice`. Prices are treated as cost per 1,000,000 tokens.
+
+Do not commit real pricing URLs or API keys. Keep them in the local `.env`.
+
+Cost Guard budget is a local control. It is separate from upstream provider quotas. If the upstream returns an error such as `429`, that is a provider quota/rate-limit response even when `costguard budget status` shows `mode=warn` and `action=allow`.
+
 ## rules list
 
 Shows active rules and origin.

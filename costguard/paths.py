@@ -80,6 +80,14 @@ def db_path(home: Path | None = None) -> Path:
     return (home or costguard_home()) / "costguard.db"
 
 
+def pricing_path(home: Path | None = None) -> Path:
+    return config_dir(home) / "pricing.yaml"
+
+
+def models_cache_path(home: Path | None = None) -> Path:
+    return cache_dir(home) / "models.json"
+
+
 def claude_settings_path(home: Path | None = None) -> Path:
     return (home or claude_home()) / "settings.json"
 

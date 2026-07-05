@@ -64,6 +64,12 @@ def run_checks(home: Path | None = None, claude_home: Path | None = None) -> lis
     else:
         checks.append(Check("WARN", "Anthropic upstream", "ANTHROPIC_UPSTREAM_BASE_URL is empty"))
 
+    if env.get("COSTGUARD_PRICING_URL"):
+        if paths.pricing_path(home).exists():
+            checks.append(Check("OK", "Pricing catalog", str(paths.pricing_path(home))))
+        else:
+            checks.append(Check("WARN", "Pricing catalog", "run costguard pricing refresh"))
+
     budget = settings.get("budget", {})
     if budget.get("daily") and budget.get("monthly"):
         checks.append(Check("OK", "Budget", f"daily={budget.get('daily')} monthly={budget.get('monthly')} mode={budget.get('mode')}"))

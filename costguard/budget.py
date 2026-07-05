@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from . import config
+from . import config, pricing
 from .sqlite_store import usage_summary
 
 
@@ -27,10 +27,13 @@ def estimate_tokens(input_chars: int, output_chars: int = 0) -> int:
     return max(1, int((input_chars + output_chars + 3) / 4))
 
 
-def estimate_cost(model_alias: str, tokens: int, home: Path | None = None) -> float:
+def estimate_cost(model_alias: str, tokens: int, home: Path | None = None, output_tokens: int = 0) -> float:
+    catalog_cost = pricing.estimate_cost(model_alias, tokens, output_tokens=output_tokens, home=home)
+    if catalog_cost is not None:
+        return catalog_cost
     settings = config.load_settings(home)
     price_per_1k = float(settings.get("pricing", {}).get(model_alias, 0.001))
-    return (tokens / 1000.0) * price_per_1k
+    return ((tokens + output_tokens) / 1000.0) * price_per_1k
 
 
 def budget_status(home: Path | None = None) -> dict[str, Any]:
