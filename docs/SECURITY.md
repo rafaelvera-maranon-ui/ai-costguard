@@ -60,7 +60,7 @@ Cache is disabled by default. Even when enabled, the MVP stores hashes, metadata
 
 ## Headroom Risks
 
-Headroom can transform content before it reaches the upstream model. Enable it only after reviewing the module and data handling requirements for your environment.
+Headroom is currently a status/configuration scaffold, not an active proxy transformation. If a future adapter transforms content before it reaches the upstream model, review the module and data handling requirements for your environment before enabling it.
 
 ## Do Not Commit Secrets
 

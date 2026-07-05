@@ -70,7 +70,7 @@ The MVP includes commands and local storage structure. A vector engine can be ad
 
 ## Headroom
 
-Headroom is an optional compression module. It is not a core dependency and is disabled by default. This keeps the base install small and avoids sending content through extra processing unless the user explicitly enables it.
+Headroom is an optional integration scaffold. It is not a core dependency and is disabled by default. The current CLI can detect whether a compatible `headroom` package is installed and can persist an enable flag, but the proxy does not apply Headroom compression to runtime requests yet.
 
 ## Proxy MVP
 
@@ -87,5 +87,6 @@ It validates the local API key, applies a basic secret filter, checks budgets, m
 - Cost estimates are approximate.
 - Streaming support is not implemented in the MVP.
 - Semantic cache is scaffolded, not a full vector implementation.
+- Headroom is scaffolded for status/configuration, not wired into proxy request transformation.
 - Cline still requires manual configuration.
 - Upstream-specific edge cases may need adapter improvements.

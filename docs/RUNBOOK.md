@@ -289,7 +289,7 @@ costguard cache clear
 costguard headroom status
 ```
 
-Shows whether Headroom is available and enabled.
+Shows whether a compatible Headroom package is available and whether the local enable flag is set. In the current version this is a readiness/status check only; proxy requests are not compressed by Headroom yet.
 
 ## headroom enable
 
@@ -302,6 +302,8 @@ If missing:
 ```bash
 pip install "ai-costguard[headroom]"
 ```
+
+This command only enables the local flag after the package is available. It does not change runtime proxy behavior until a Headroom adapter is wired into Cost Guard.
 
 ## headroom disable
 
