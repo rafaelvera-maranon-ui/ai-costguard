@@ -1,0 +1,25 @@
+tools:
+  cline: true
+  claude_code: true
+proxy:
+  host: 127.0.0.1
+  port: 4040
+active_model: cg-standard
+budget:
+  daily: 5.0
+  monthly: 100.0
+  mode: warn
+cache:
+  mode: disabled
+headroom:
+  enabled: false
+autostart:
+  enabled: false
+output_limits:
+  max_chars: 20000
+  max_lines: 500
+pricing:
+  cg-cheap: 0.0002
+  cg-standard: 0.001
+  cg-strong: 0.003
+  cg-sonnet: 0.003
