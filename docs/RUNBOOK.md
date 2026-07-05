@@ -1,65 +1,42 @@
 # AI Cost Guard Runbook
 
-This runbook is for teammates who want to install, validate, operate, and remove Cost Guard safely.
+AI Cost Guard is a local AI gateway/middleware for Cline and Claude Code. It runs on the developer machine, applies local rules and budget checks, then forwards allowed requests to the configured upstream provider.
 
-AI Cost Guard is a local AI gateway/middleware. It runs on your machine, receives Cline or Claude Code traffic, applies local rules and budget checks, then forwards allowed requests to the upstream provider configured in `.env`.
+## Golden Rules
 
-## Safe Operating Flow
+- Use `COSTGUARD_HOME` and `COSTGUARD_CLAUDE_HOME` for tests and demos; do not touch real home config unless you mean to.
+- Do not commit real endpoints, API keys, screenshots, logs, or `.env` values.
+- Cost Guard does not modify client repos unless `costguard attach` is explicitly run.
+- `OPENAI_UPSTREAM_BASE_URL` / `ANTHROPIC_UPSTREAM_BASE_URL` are inference endpoints; `COSTGUARD_PRICING_URL` is a separate pricing catalog endpoint.
+- Provider `429` or secret-filter errors are upstream controls; Cost Guard budget is local policy.
 
-1. Install the package.
-2. Run `costguard setup`.
-3. Run `costguard doctor`.
-4. Configure Cline with `costguard cline-config` or let setup merge Claude Code settings.
-5. Use `costguard status`, `costguard budget status`, and `costguard usage today` to inspect behavior.
-6. Run `costguard uninstall` to restore Claude Code settings and remove Cost Guard fragments.
+## Safe Local Smoke
 
-For tests and demos, always set:
+Use this before changing real workstation settings.
+
+```powershell
+$env:COSTGUARD_HOME = "$(Get-Location)\.tmp\costguard"
+$env:COSTGUARD_CLAUDE_HOME = "$(Get-Location)\.tmp\claude"
+
+costguard setup --tool both --daily-budget 5 --monthly-budget 100 --budget-mode warn --non-interactive
+costguard doctor
+costguard cline-config
+costguard rules test "cat .env"
+costguard rules test "git diff"
+costguard budget status
+costguard uninstall --yes
+```
+
+Bash equivalent:
 
 ```bash
 export COSTGUARD_HOME="$(pwd)/.tmp/costguard"
 export COSTGUARD_CLAUDE_HOME="$(pwd)/.tmp/claude"
 ```
 
-PowerShell:
-
-```powershell
-$env:COSTGUARD_HOME = "$(Get-Location)\.tmp\costguard"
-$env:COSTGUARD_CLAUDE_HOME = "$(Get-Location)\.tmp\claude"
-```
-
-## Reusable Work-PC Prompt
-
-For a controlled validation on a work laptop with Cline, use the reusable Spanish prompt in:
-
-```text
-docs/prompts/work-pc-validation-prompt.es.md
-```
-
-It asks the assistant to run the isolated smoke first, avoid printing secrets, install `costguard` as a global command with `uv tool install --editable ... --link-mode=copy` when available, configure only Cline before Claude Code, and document Windows PATH or OneDrive issues.
-
-## Work-PC Update Procedure
-
-For updating an existing corporate work-PC checkout from a company GitHub fork without touching client repositories or consuming LLM tokens, use:
-
-```text
-docs/WORK_PC_UPDATE.md
-```
-
-It covers Sync fork from GitHub web, `git pull --ff-only`, stopping CostGuard before recreating `.venv`, `uv sync --extra dev`, the standard global `costguard` refresh command to share for any CLI update, optional Headroom validation, and offline checks.
-
 ## Install
 
-```bash
-pip install -e .[dev]
-```
-
-For an end-user machine:
-
-```bash
-pipx install git+https://github.com/your-org/ai-costguard.git
-```
-
-On Windows work laptops where `uv` is available, a practical local install from the repo is:
+Use `uv` on Windows work laptops, especially when the repo lives under OneDrive.
 
 ```powershell
 uv venv .venv --python 3.14
@@ -68,13 +45,11 @@ uv tool install --editable "." --link-mode=copy
 costguard --help
 ```
 
-Use a Python version `>=3.10` that exists on the machine. Keep `--link-mode=copy` when the repo is under OneDrive.
+Use any installed Python `>=3.10`; keep `--link-mode=copy` for OneDrive.
 
-## setup
+## Setup
 
-Creates Cost Guard home, `.env`, `settings.yaml`, SQLite, rules, hooks, safe commands, logs, cache folders, and Claude Code settings when enabled.
-
-When Claude Code is enabled, the first setup on a real workstation backs up the current `settings.json` before adding Cost Guard env vars and hooks. Re-running setup does not replace that clean pre-Cost-Guard backup with an already instrumented file.
+Creates Cost Guard home, `.env`, settings, SQLite, rules, hooks, safe commands, logs, cache folders, and optional Claude Code settings.
 
 ```bash
 costguard setup
@@ -82,46 +57,23 @@ costguard setup --tool both --daily-budget 5 --monthly-budget 100 --budget-mode 
 costguard setup --dry-run
 ```
 
-## start
+Claude Code setup creates a clean backup before merging Cost Guard settings.
 
-Starts the local proxy.
+## Start And Stop
+
+Run the local proxy on localhost.
 
 ```bash
 costguard start
 costguard start --host 127.0.0.1 --port 4040
-```
-
-The default bind address is `127.0.0.1`. Cost Guard warns if another host is used.
-
-## stop
-
-Stops the proxy if it was started by Cost Guard and a pid file is available.
-
-```bash
 costguard stop
 ```
 
-## status
+The default bind address is `127.0.0.1`; other hosts should be intentional.
 
-Shows proxy address, tools, active model, budget, cache, Headroom, config path, SQLite path, and log path.
+## Cline Config
 
-```bash
-costguard status
-```
-
-## doctor
-
-Validates local installation and prints OK, WARN, and ERROR checks.
-
-```bash
-costguard doctor
-```
-
-It checks home, `.env`, `settings.yaml`, SQLite, hooks, safe commands, rules, Claude Code settings, Cline instructions, upstream variables, budgets, script permissions, and proxy health.
-
-## cline-config
-
-Prints exactly what to paste into Cline.
+Print the values to paste into Cline.
 
 ```bash
 costguard cline-config
@@ -136,9 +88,20 @@ API Key: sk-costguard-local
 Model ID: cg-standard
 ```
 
-## use
+## Daily Checks
 
-Changes the active model alias.
+Inspect install health, proxy state, usage, and local budget.
+
+```bash
+costguard status
+costguard doctor
+costguard usage today
+costguard budget status
+```
+
+## Model Alias
+
+Switch the local model category; real model IDs stay in local `.env`.
 
 ```bash
 costguard use cheap
@@ -146,71 +109,45 @@ costguard use standard
 costguard use strong
 ```
 
-When Claude Code is configured, `ANTHROPIC_MODEL` is updated too.
+Canonical aliases are `cg-cheap`, `cg-standard`, and `cg-strong`.
 
-## budget status
+## Budget
 
-Shows daily and monthly usage, limits, remaining budget, mode, and current action.
-
-```bash
-costguard budget status
-```
-
-## budget set
-
-Updates limits.
+Set limits and behavior after limits are reached.
 
 ```bash
-costguard budget set --daily 5
-costguard budget set --monthly 100
-costguard budget set --daily 10 --monthly 200
-```
-
-## budget mode
-
-Sets behavior after budget is reached.
-
-```bash
+costguard budget set --daily 5 --monthly 100
 costguard budget mode warn
 costguard budget mode block-premium
 costguard budget mode block-all
 ```
 
-Modes:
+Modes: `warn` allows, `block-premium` blocks `cg-strong`, `block-all` blocks new calls.
 
-- `warn`: warn but allow.
-- `block-premium`: block `cg-strong`.
-- `block-all`: block new calls.
+## Rules
 
-## pricing status
-
-Shows whether a provider pricing endpoint is configured and how many model prices are cached locally.
+Inspect, edit, and test local command guardrails.
 
 ```bash
-costguard pricing status
+costguard rules list
+costguard rules edit
+costguard rules test "cat .env"
+costguard rules test "git diff"
+costguard rules test "find ."
 ```
 
-By default, Cost Guard uses simple local fallback estimates from `settings.yaml`. For a real corporate deployment, configure a model pricing catalog endpoint in `.env` and refresh the local cache.
+Expected defaults: `.env` is blocked; full `git diff` and `find .` are rewritten to smaller commands.
 
-## pricing refresh
+## Pricing Catalog
 
-Fetches model pricing from the configured catalog endpoint and writes local pricing data to `config/pricing.yaml`.
-
-```bash
-costguard pricing refresh
-costguard pricing refresh --dry-run
-costguard pricing configure --endpoint https://models.example.com/v1/models --api-key-env PRICING_API_KEY --auth-header x-api-key
-costguard pricing refresh --endpoint https://models.example.com/v1/models --api-key-env PRICING_API_KEY --auth-header x-api-key
-```
-
-Expected `.env` variables:
+Configure this only if your company/provider exposes a model pricing catalog.
 
 ```text
-# Model inference endpoint and key. Used for chat/completions or messages.
+# Inference endpoint: used to call models.
 OPENAI_UPSTREAM_BASE_URL=
 OPENAI_UPSTREAM_API_KEY=
 
-# Pricing catalog endpoint and auth. Used only to fetch model prices.
+# Pricing catalog endpoint: used only to fetch model prices.
 COSTGUARD_PRICING_URL=
 COSTGUARD_PRICING_API_KEY_ENV=
 COSTGUARD_PRICING_API_KEY=
@@ -218,207 +155,92 @@ COSTGUARD_PRICING_AUTH_HEADER=x-api-key
 COSTGUARD_PRICING_AUTH_SCHEME=
 ```
 
-The inference endpoint and the pricing endpoint are different services even if your company uses the same API key for both. `COSTGUARD_PRICING_API_KEY_ENV` names the shell or local `.env` variable that contains the key for the pricing catalog. If the same key is valid for both endpoints, you can set it to `OPENAI_UPSTREAM_API_KEY` or `ANTHROPIC_UPSTREAM_API_KEY`. If pricing has a separate key, use a separate variable such as `PRICING_API_KEY`.
+If the same key works for inference and pricing:
 
-For corporate validation, prefer `--api-key-env` or `COSTGUARD_PRICING_API_KEY_ENV` so the real key does not need to be duplicated in Git, shell history, logs, or screenshots.
+```text
+COSTGUARD_PRICING_API_KEY_ENV=OPENAI_UPSTREAM_API_KEY
+```
 
-Example PowerShell:
+If pricing has a separate key:
 
 ```powershell
 $env:PRICING_API_KEY = "<REDACTED>"
 costguard pricing configure --endpoint https://models.example.com/v1/models --api-key-env PRICING_API_KEY --auth-header x-api-key
+```
+
+Validate and cache prices locally.
+
+```bash
+costguard pricing status
 costguard pricing refresh --dry-run
 costguard pricing refresh
 ```
 
-Use your company's model catalog endpoint. Do not use an OpenAI-compatible inference endpoint as the pricing source.
+Do not use the inference endpoint as the pricing source; pricing refresh calls a catalog endpoint and does not consume LLM tokens.
 
-The endpoint should return a JSON model catalog. Cost Guard recognizes generic fields such as `name`, `systemName`, `inputPrice`, `outputPrice`, `cachedTokenReadPrice`, and `cachedTokenCreationPrice`. Prices are treated as cost per 1,000,000 tokens and are calculated separately for input and output tokens.
+## Cache
 
-Do not commit API keys or other secrets. Keep keys in local environment variables or the local `.env`; prefer `--api-key-env` for work-PC validation.
-
-`pricing refresh` does not call chat/completions and does not consume LLM tokens. It fetches a model catalog, writes the raw response to `cache/models.json`, and writes normalized prices to `config/pricing.yaml`. If no catalog is configured or available, Cost Guard falls back to local estimates from `settings.yaml`.
-
-Cost Guard budget is a local control. It is separate from upstream provider quotas. If the upstream returns an error such as `429`, that is a provider quota/rate-limit response even when `costguard budget status` shows `mode=warn` and `action=allow`.
-
-## rules list
-
-Shows active rules and origin.
-
-```bash
-costguard rules list
-```
-
-Origins are default, user, and project.
-
-## rules edit
-
-Opens `rules/user.yaml` in the default editor. If no editor is configured, prints the path.
-
-```bash
-costguard rules edit
-```
-
-## rules test
-
-Evaluates a command without executing it.
-
-```bash
-costguard rules test "cat .env"
-costguard rules test "git diff"
-costguard rules test "find ."
-```
-
-Output is ALLOW, BLOCK, or REWRITE with a reason.
-
-## usage today
-
-Shows today's requests, estimated tokens, estimated cost, most used model, rules triggered, reduced outputs, and security blocks.
-
-```bash
-costguard usage today
-```
-
-## usage month
-
-Same view for the current month.
-
-```bash
-costguard usage month
-```
-
-## cache status
-
-Shows disabled, basic, or semantic mode, cache path, entries, and approximate size.
+Manage optional local cache state.
 
 ```bash
 costguard cache status
-```
-
-## cache enable
-
-Enables optional local cache.
-
-```bash
 costguard cache enable --mode basic
-costguard cache enable --mode semantic
-```
-
-Semantic mode is scaffolded for a future vector engine and is disabled by default.
-
-## cache disable
-
-```bash
 costguard cache disable
-```
-
-## cache clear
-
-```bash
 costguard cache clear
 ```
 
-## headroom status
+Semantic mode is scaffolded for a future vector engine.
+
+## Headroom
+
+Optional request compression requires a compatible external package.
 
 ```bash
 costguard headroom status
-```
-
-Shows whether a compatible Headroom package is available, whether the local enable flag is set, and which adapter function will be used.
-
-## headroom enable
-
-```bash
 costguard headroom enable
+costguard headroom disable
 ```
 
-If missing:
+Install only when needed:
 
 ```bash
 pip install "ai-costguard[headroom]"
 ```
 
-or install Headroom directly into the same Python environment as Cost Guard:
+## Attach
 
-```bash
-pip install headroom-ai
-```
-
-`costguard headroom enable` requires an importable Python module named `headroom` exposing the official library function:
-
-- `compress`
-
-For custom adapters, Cost Guard also accepts:
-
-- `compress_payload`
-- `compress_request`
-- `transform_payload`
-- `apply`
-
-Once enabled, Cost Guard applies Headroom before budget checks and upstream forwarding. Use Headroom in library mode through Cost Guard first; avoid `headroom wrap cline` during initial rollout because Cost Guard already owns Cline/Claude setup, backup, and uninstall.
-
-## headroom disable
-
-```bash
-costguard headroom disable
-```
-
-## attach
-
-Attaches Cost Guard metadata to the current project only when explicitly requested.
+Attach project metadata only when explicitly requested.
 
 ```bash
 costguard attach --project my-project
 costguard attach --project my-project --dry-run
 ```
 
-It creates `.claude/settings.local.json`, sets `COSTGUARD_PROJECT` and `COSTGUARD_REPO`, and adds the file to `.git/info/exclude` if the current directory is a Git repo. It does not modify `.gitignore`.
+It writes `.claude/settings.local.json` and excludes it via `.git/info/exclude`; it does not edit `.gitignore`.
 
-## uninstall
+## Uninstall
+
+Revert Claude Code settings and remove Cost Guard fragments.
 
 ```bash
 costguard uninstall
 costguard uninstall --dry-run
 ```
 
-Stops the proxy, restores Claude Code settings from the latest clean backup when possible, removes only Cost Guard fragments otherwise, removes Cost Guard backup files after cleanup, and keeps Cost Guard home by default.
-
-This is the intended revert path for a teammate who tries Cost Guard on a work machine and decides not to keep it: run `costguard uninstall`, then Claude Code should be back to the settings it had before the first Cost Guard setup.
-
-## uninstall --purge
+Delete Cost Guard home only when explicitly requested.
 
 ```bash
 costguard uninstall --purge --yes
 ```
 
-Also deletes Cost Guard home. Confirmation is required unless `--yes` is provided.
+Plain uninstall keeps `COSTGUARD_HOME`; purge deletes it.
 
-## Safe Local Development
+## Work-PC Guides
 
-Never run development smoke tests against your real home directories. Use temporary paths inside the repo:
+Use these when validating or updating a corporate laptop.
 
-```bash
-export COSTGUARD_HOME="$(pwd)/.tmp/costguard"
-export COSTGUARD_CLAUDE_HOME="$(pwd)/.tmp/claude"
-costguard setup --tool both --daily-budget 5 --monthly-budget 100 --budget-mode warn --non-interactive
-costguard doctor
-costguard cline-config
-costguard rules test "cat .env"
-costguard rules test "git diff"
-costguard budget status
-costguard uninstall --yes
-```
-
-PowerShell:
-
-```powershell
-$env:COSTGUARD_HOME = "$(Get-Location)\.tmp\costguard"
-$env:COSTGUARD_CLAUDE_HOME = "$(Get-Location)\.tmp\claude"
-costguard setup --tool both --daily-budget 5 --monthly-budget 100 --budget-mode warn --non-interactive
-costguard doctor
-costguard cline-config
-costguard rules test "cat .env"
-costguard rules test "git diff"
-costguard budget status
-costguard uninstall --yes
+```text
+docs/prompts/work-pc-validation-prompt.es.md
+docs/WORK_PC_UPDATE.md
+docs/TROUBLESHOOTING.md
 ```

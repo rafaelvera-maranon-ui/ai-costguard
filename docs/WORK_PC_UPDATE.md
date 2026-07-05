@@ -1,50 +1,40 @@
 # Update ai-costguard On A Work PC
 
-This procedure updates a local `ai-costguard` checkout on a corporate PC when the code is distributed through a company fork.
+Use this when a corporate laptop has a local checkout of a company fork and you need to update the local CLI without touching client repos or consuming LLM tokens.
 
-Recommended flow:
-
-```text
-Personal/original repo updated
-  -> Sync fork in company GitHub
-  -> git pull in local company checkout
-  -> uv sync --extra dev
-  -> refresh the global costguard command with the standard update command
-  -> offline validations
-```
-
-## 1. Goal
-
-Update `ai-costguard` on a corporate PC without modifying client repositories, without touching real local configuration unnecessarily, and without consuming LLM tokens.
-
-The validations in this document are offline: they check the CLI, rules, environment, tests, and local state. They should not call Cline, Claude Code, or the upstream LLM provider.
-
-## 2. Assumptions
-
-- The company local checkout is in a folder similar to:
+## Flow
 
 ```text
-C:\Users\<user>\...\Github\AI\ai-costguard
+Original repo updated
+  -> Sync company fork in GitHub
+  -> Pull local work-PC checkout
+  -> Stop CostGuard
+  -> Recreate .venv with uv
+  -> Refresh global costguard command
+  -> Run offline validations
 ```
 
-- `origin` points to the company fork, not necessarily to the personal/original repo.
-- The company fork is synchronized from GitHub web using `Sync fork`.
-- The project is managed with `uv`.
-- Do not use `pip` directly for this update flow.
-- Do not run this procedure inside a client repository such as `databricks-free-lab`.
+## Rules
 
-## 3. Sync The Company Fork
+- Run this inside the `ai-costguard` repo, not inside a client repo.
+- Keep `origin` pointing to the company fork.
+- Use `uv`, not direct `pip`, for this update flow.
+- Do not print or commit secrets, company endpoints, logs, or screenshots with sensitive data.
+- Do not test Cline against the model during offline validation.
 
-1. Open the company fork of `ai-costguard` in GitHub.
-2. Click `Sync fork`.
-3. Click `Update branch`.
-4. Confirm that the fork is up to date with the personal/original repo.
+## 1. Sync The Company Fork
 
-You do not need to configure a local upstream remote for this flow. The fork is synchronized from GitHub web to keep the work-PC procedure simple and less error-prone.
+Do this in GitHub web.
 
-## 4. Update The Local Checkout
+```text
+Open company fork -> Sync fork -> Update branch
+```
 
-Open PowerShell and move to the local `ai-costguard` checkout, not to a client repo:
+This avoids requiring an `upstream` remote on the work PC.
+
+## 2. Pull The Local Checkout
+
+Open PowerShell in the local `ai-costguard` checkout.
 
 ```powershell
 Set-Location "PATH_TO_REPO\ai-costguard"
@@ -52,88 +42,49 @@ Set-Location "PATH_TO_REPO\ai-costguard"
 git remote -v
 git status
 git branch --show-current
-
 git fetch origin --prune
 git pull --ff-only origin main
 git log --oneline -10
 ```
 
-Expected evidence:
+Expected: branch is `main`, `origin` is the company fork, and pull completes without a merge.
 
-- `origin` points to the company fork.
-- The active branch is `main`.
-- `git status` shows no pending local changes before the update.
-- `git pull --ff-only origin main` completes without a manual merge.
-- `git log --oneline -10` shows the expected recent commits.
+If local changes block the pull, do not run `git reset --hard` until you know what would be lost.
 
-If `git pull --ff-only` fails because of local changes, do not run `git reset --hard` without a backup and without understanding which changes would be lost.
+## 3. Stop CostGuard
 
-## 5. Stop CostGuard Before Updating The Environment
-
-Before recreating `.venv`, stop CostGuard if it was running:
+Stop the proxy before recreating `.venv`.
 
 ```powershell
 costguard stop
-
 Get-Process python,uv,costguard -ErrorAction SilentlyContinue | Select-Object Name,Id,Path
 ```
 
-How to interpret this:
+Only close processes whose `Path` belongs to this repo or to CostGuard.
 
-- If no processes are returned, you can continue.
-- If `python`, `costguard`, or `uv` processes are returned, they may be locking `.venv`.
-- Do not kill processes blindly. Check the `Path` value and confirm they belong to this repo or to CostGuard before closing them.
+## 4. Recreate The uv Environment
 
-## 6. Recreate A Clean uv Environment
-
-From the local `ai-costguard` checkout:
+Recreate `.venv` to avoid stale packages, `missing RECORD file`, and Windows file-lock issues.
 
 ```powershell
 Remove-Item -Recurse -Force .\.venv
-
 uv sync --extra dev
 ```
 
-We recreate the environment cleanly because real work-PC testing showed that it avoids inconsistent environments, `missing RECORD file`, half-installed packages, and `Access denied` errors.
+Expected: `.venv` is created and `ai-costguard` is installed from the local repo path.
 
-Expected evidence:
+## 5. Refresh The Global CLI
 
-- Output equivalent to `Creating virtual environment at: .venv`.
-- Packages are installed from the local project.
-- `ai-costguard` is installed from a path like `file:///.../ai-costguard`.
-- No `missing RECORD file` warnings appear.
-- No `Access denied` errors appear.
-
-If `Remove-Item` fails, go back to the previous section and check for live processes.
-
-## 7. Refresh The Global costguard Command
-
-If the work PC uses `costguard` as a global command, refresh that command after every repo update. This is the standard CLI update step, regardless of whether the change was for setup, pricing, rules, Headroom, docs, or any other future iteration.
-
-This keeps day-to-day commands consistent with the updated repo and avoids falling back to an older installation.
-
-When you announce a new `ai-costguard` CLI update to teammates, this is the standard refresh command to share:
-
-```powershell
-uv tool install --editable "." --link-mode=copy --force
-```
-
-Do not describe this as a Headroom command. Headroom is only one optional feature that can be validated after the CLI itself has been updated.
-
-From the local `ai-costguard` checkout:
+Run this after every repo update if teammates use `costguard` as a global command.
 
 ```powershell
 uv tool install --editable "." --link-mode=copy --force
 costguard --help
 ```
 
-Expected evidence:
+This is the standard CLI update command, not a Headroom-specific command.
 
-- `costguard --help` works from a fresh terminal.
-- The command exposes the same command groups as `uv run costguard --help`.
-- The global command is installed from this repo, not from an unrelated old package.
-
-If your `uv` version does not support `--force`, use the explicit reinstall path:
+Fallback when `--force` is unsupported:
 
 ```powershell
 uv tool uninstall costguard
@@ -141,146 +92,79 @@ uv tool install --editable "." --link-mode=copy
 costguard --help
 ```
 
-If you do not want a global command, skip this section and use `uv run costguard ...` from inside the repo.
+If you do not use a global command, use `uv run costguard ...` from inside the repo.
 
-## 8. Validate The Updated CLI
+## 6. Validate Offline
+
+Run checks that do not call an LLM.
 
 ```powershell
+uv run pytest
 uv run costguard --help
+uv run costguard rules test "cat .env"
+uv run costguard rules test "git diff"
+uv run costguard rules test "find ."
+uv run costguard pricing status
+uv run costguard cache status
+uv run costguard headroom status
 ```
 
-Expected commands:
+Expected: tests pass, `.env` is blocked, noisy commands are rewritten, and status commands return local state.
 
-- `setup`
-- `start`
-- `stop`
-- `status`
-- `doctor`
-- `cline-config`
-- `budget`
-- `rules`
-- `usage`
-- `cache`
-- `headroom`
-- `pricing`
+## 7. Optional Pricing Catalog
 
-If `costguard` is not available globally, use `uv run costguard ...` from inside the repo and avoid mixing it with older global installations.
+Configure only if the company/provider exposes a pricing catalog endpoint.
 
-## 9. Optional Headroom Environment Validation
+```text
+# Inference endpoint: used by Cline/Claude Code to call the model.
+OPENAI_UPSTREAM_BASE_URL=
+OPENAI_UPSTREAM_API_KEY=
 
-Use the optional Headroom extra only when your team explicitly wants to validate request compression:
+# Pricing catalog endpoint: used only by costguard pricing refresh.
+COSTGUARD_PRICING_URL=
+COSTGUARD_PRICING_API_KEY_ENV=
+COSTGUARD_PRICING_API_KEY=
+COSTGUARD_PRICING_AUTH_HEADER=x-api-key
+COSTGUARD_PRICING_AUTH_SCHEME=
+```
+
+If the same key works for both endpoints:
+
+```text
+COSTGUARD_PRICING_API_KEY_ENV=OPENAI_UPSTREAM_API_KEY
+```
+
+If pricing has a separate key:
+
+```powershell
+$env:PRICING_API_KEY = "<REDACTED>"
+uv run costguard pricing configure --endpoint https://models.example.com/v1/models --api-key-env PRICING_API_KEY --auth-header x-api-key
+```
+
+Validate without writing, then refresh local cache.
+
+```powershell
+uv run costguard pricing refresh --dry-run
+uv run costguard pricing refresh
+uv run costguard pricing status
+```
+
+Do not use the inference endpoint as `COSTGUARD_PRICING_URL`.
+
+## 8. Optional Headroom Check
+
+Run only when validating request compression.
 
 ```powershell
 uv sync --extra dev --extra headroom
 uv run costguard headroom status
 ```
 
-Headroom is not required for the standard CostGuard CLI update.
+Headroom is optional and not required for the standard CLI update.
 
-## 10. Offline Validations Without Consuming Tokens
+## 9. Optional Isolated Setup Smoke
 
-These validations should not call LLMs or consume upstream provider quota:
-
-```powershell
-uv run pytest
-
-uv run costguard rules test "cat .env"
-uv run costguard rules test "git diff"
-uv run costguard rules test "find ."
-
-uv run costguard pricing --help
-uv run costguard pricing configure --help
-uv run costguard pricing refresh --help
-uv run costguard pricing status
-
-uv run costguard headroom status
-uv run costguard cache status
-```
-
-Expected evidence:
-
-- `pytest` passes.
-- `cat .env` is blocked.
-- `git diff` and `find .` are rewritten to smaller commands.
-- `pricing status`, `headroom status`, and `cache status` show local state.
-
-Do not test Cline against the model during this phase if quota is exhausted or if you only need to validate the local update.
-
-## 11. Configure Pricing Catalog
-
-CostGuard can optionally fetch and cache model prices from a provider model catalog. This does not consume LLM tokens because it calls a catalog endpoint, not chat/completions.
-
-There are two different endpoint types:
-
-- Model inference endpoint: used by Cline/Claude Code through CostGuard to call the model.
-- Pricing catalog endpoint: used by `costguard pricing refresh` to fetch model metadata and prices.
-
-Your company may use the same API key for both endpoints, or it may provide separate keys. Configure whatever your platform team provides in the local `.env`; do not commit those values.
-
-For a company model catalog, use the endpoint provided by your platform team:
-
-```text
-GET https://models.example.com/v1/models
-Header: x-api-key: <REDACTED>
-```
-
-Do not use an OpenAI-compatible inference endpoint as the pricing source:
-
-```text
-https://llm-gateway.example.com/v1
-```
-
-Use a shell or local `.env` variable for the key:
-
-```powershell
-$env:PRICING_API_KEY = "<REDACTED>"
-```
-
-If the pricing catalog uses the same key as the inference endpoint already stored in local `.env`, set:
-
-```text
-COSTGUARD_PRICING_API_KEY_ENV=OPENAI_UPSTREAM_API_KEY
-```
-
-or, for Anthropic-compatible upstreams:
-
-```text
-COSTGUARD_PRICING_API_KEY_ENV=ANTHROPIC_UPSTREAM_API_KEY
-```
-
-Store non-secret pricing configuration locally under `COSTGUARD_HOME`:
-
-```powershell
-uv run costguard pricing configure --endpoint https://models.example.com/v1/models --api-key-env PRICING_API_KEY --auth-header x-api-key
-```
-
-Validate without writing files:
-
-```powershell
-uv run costguard pricing refresh --dry-run
-```
-
-Refresh and cache locally:
-
-```powershell
-uv run costguard pricing refresh
-uv run costguard pricing status
-```
-
-Files written under `COSTGUARD_HOME`:
-
-```text
-<COSTGUARD_HOME>\config\pricing.yaml
-<COSTGUARD_HOME>\cache\models.json
-```
-
-The API key is not written to those files. Do not paste real keys into chats, issues, logs, screenshots, or commits.
-
-If no pricing catalog is configured or cached, CostGuard continues to use fallback estimates from `settings.yaml`.
-
-## 12. Optional Isolated Validation
-
-To validate `setup` without touching `~/.costguard`, `~/.claude`, or real Claude Code configuration, use temporary paths inside the repo:
+Use repo-local temp paths to avoid touching real home config.
 
 ```powershell
 $env:COSTGUARD_HOME = "$(Get-Location)\.tmp\costguard"
@@ -290,93 +174,41 @@ uv run costguard setup --tool cline --daily-budget 5 --monthly-budget 100 --budg
 uv run costguard doctor
 uv run costguard status
 uv run costguard cline-config
+uv run costguard uninstall --yes
 ```
 
-This isolated validation should not modify real Claude Code configuration. With `--tool cline`, CostGuard only prints Cline configuration and keeps the test inside `COSTGUARD_HOME`.
+With `--tool cline`, setup prints Cline config and does not edit Claude Code settings.
 
-## 13. What Not To Do
+## Troubleshooting
 
-- Do not run this procedure inside client repositories.
-- Do not use `pip install` directly unless a specific runbook says so.
-- Do not run `git reset --hard` without a backup.
-- Do not edit `~/.claude/settings.json` without explicit confirmation.
-- Do not paste secrets into terminals, issues, logs, or chats.
-- Do not test Cline against the model if upstream provider quota is exhausted.
-- Do not use `Retry` in Cline when `payload blocked by secret filter` appears; use `Start New Task`.
-
-## 14. Troubleshooting
-
-### Case: `uv sync` Fails With `Access denied`
-
-Stop CostGuard:
+`uv sync` access denied:
 
 ```powershell
 costguard stop
-```
-
-Check processes:
-
-```powershell
 Get-Process python,uv,costguard -ErrorAction SilentlyContinue | Select-Object Name,Id,Path
-```
-
-If there are no relevant processes, delete `.venv` and repeat `uv sync`:
-
-```powershell
 Remove-Item -Recurse -Force .\.venv
 uv sync --extra dev
 ```
 
-### Case: `missing RECORD file` Warning
-
-Recreate `.venv` with `uv`:
-
-```powershell
-Remove-Item -Recurse -Force .\.venv
-uv sync --extra dev
-```
-
-### Case: `pip` Does Not Exist In `.venv`
-
-This is expected when the environment is managed with `uv`. Use:
+`pip` missing in `.venv`:
 
 ```powershell
 uv run costguard --help
 uv run pytest
 ```
 
-### Case: `429 true` From Cline
+`429 true` from Cline: upstream provider quota/rate limit; validate offline and wait or change tier/credentials.
 
-This is usually an upstream provider limit or quota issue, not necessarily a CostGuard block.
+`payload blocked by secret filter`: start a new Cline task; avoid retrying the same accumulated context.
 
-Possible actions:
+## Final Checklist
 
-- Wait for quota reset.
-- Change credentials or tier if applicable.
-- Validate offline with `uv run pytest` and `costguard` commands without calling the model.
-
-### Case: `payload blocked by secret filter`
-
-This can be caused by accumulated Cline context.
-
-Recommended actions:
-
-- Open `Start New Task`.
-- Try a minimal prompt such as `Say OK`.
-- Do not use `Retry` as the first diagnostic step because it may resend the same accumulated context.
-
-## 15. Final Checklist
-
-- [ ] Company fork synchronized from GitHub.
-- [ ] Local checkout updated with `git pull --ff-only`.
-- [ ] `costguard stop` executed.
-- [ ] No `python`, `uv`, or `costguard` processes are locking `.venv`.
+- [ ] Company fork synced in GitHub.
+- [ ] Local checkout pulled with `git pull --ff-only origin main`.
+- [ ] CostGuard stopped before `.venv` recreation.
 - [ ] `.venv` recreated with `uv sync --extra dev`.
-- [ ] Global `costguard` command refreshed with `uv tool install --editable "." --link-mode=copy --force`, if used.
-- [ ] `uv run costguard --help` shows `pricing`, `headroom`, and `cache`.
-- [ ] `pytest` passes.
-- [ ] `rules test` works.
-- [ ] `pricing status` works.
-- [ ] Optional pricing catalog dry-run works without printing secrets.
-- [ ] No client repositories were touched.
-- [ ] No LLM tokens were consumed during offline validations.
+- [ ] Global CLI refreshed with `uv tool install --editable "." --link-mode=copy --force`, if used.
+- [ ] Offline validations passed.
+- [ ] No client repos touched.
+- [ ] No LLM tokens consumed during validation.
+- [ ] No secrets or company endpoints printed or committed.
