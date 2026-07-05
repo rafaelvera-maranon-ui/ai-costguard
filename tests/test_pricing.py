@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import httpx
 import pytest
+from typer.testing import CliRunner
 
+from costguard.cli import app
 from costguard import budget, paths, pricing
 from costguard.install import setup_costguard
 from costguard.utils import write_yaml
@@ -55,3 +58,113 @@ def test_budget_falls_back_to_local_estimate_without_pricing_catalog(isolated_en
     setup_costguard(tool="cline", non_interactive=True)
 
     assert budget.estimate_cost("cg-standard", 1000, isolated_env["home"]) == 0.001
+
+
+def test_pricing_status_without_configured_endpoint(isolated_env):
+    setup_costguard(tool="cline", non_interactive=True)
+
+    status = pricing.status(isolated_env["home"])
+
+    assert status["configured"] is False
+    assert status["models"] == 0
+    assert status["fallback"] == "settings.yaml pricing estimates"
+
+
+def test_pricing_refresh_uses_endpoint_api_key_env_and_writes_cache(isolated_env, monkeypatch):
+    setup_costguard(tool="cline", non_interactive=True)
+    monkeypatch.setenv("PRICING_API_KEY", "super-secret-key")
+    captured: dict[str, object] = {}
+    payload = [
+        {
+            "provider": "bedrock",
+            "name": "anthropic.claude-sonnet-4-6",
+            "systemName": "eu.anthropic.claude-sonnet-4-6",
+            "inputPrice": 3.3,
+            "outputPrice": 16.5,
+        }
+    ]
+
+    def fake_get(url: str, headers: dict[str, str], timeout: float) -> httpx.Response:
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["timeout"] = timeout
+        return httpx.Response(200, json=payload, request=httpx.Request("GET", url))
+
+    monkeypatch.setattr(pricing.httpx, "get", fake_get)
+
+    result = pricing.refresh(
+        isolated_env["home"],
+        endpoint="https://models.example.com/v1/models",
+        api_key_env="PRICING_API_KEY",
+        auth_header="x-api-key",
+        timeout=12,
+    )
+
+    assert result["written"] is True
+    assert result["models"] == 2
+    assert captured["url"] == "https://models.example.com/v1/models"
+    assert captured["headers"] == {"accept": "application/json", "x-api-key": "super-secret-key"}
+    assert captured["timeout"] == 12
+    assert paths.models_cache_path(isolated_env["home"]).exists()
+    assert paths.pricing_path(isolated_env["home"]).exists()
+    assert pricing.model_pricing("eu.anthropic.claude-sonnet-4-6", isolated_env["home"])["input_per_million"] == 3.3
+
+
+def test_pricing_refresh_dry_run_does_not_write_cache(isolated_env, monkeypatch):
+    setup_costguard(tool="cline", non_interactive=True)
+    payload = [{"name": "model-a", "inputPrice": 1, "outputPrice": 2}]
+
+    def fake_get(url: str, headers: dict[str, str], timeout: float) -> httpx.Response:
+        return httpx.Response(200, json=payload, request=httpx.Request("GET", url))
+
+    monkeypatch.setattr(pricing.httpx, "get", fake_get)
+
+    result = pricing.refresh(isolated_env["home"], endpoint="https://models.example.test/v1/models", dry_run=True)
+
+    assert result["dry_run"] is True
+    assert result["written"] is False
+    assert result["models"] == 1
+    assert not paths.models_cache_path(isolated_env["home"]).exists()
+    assert not paths.pricing_path(isolated_env["home"]).exists()
+
+
+def test_cli_pricing_refresh_help_lists_operational_options(isolated_env):
+    runner = CliRunner()
+
+    result = runner.invoke(app, ["pricing", "refresh", "--help"])
+
+    assert result.exit_code == 0
+    assert "--endpoint" in result.output
+    assert "--api-key-env" in result.output
+    assert "--auth-header" in result.output
+    assert "--dry-run" in result.output
+    assert "--timeout" in result.output
+
+
+def test_cli_pricing_refresh_does_not_print_api_key(isolated_env, monkeypatch):
+    setup_costguard(tool="cline", non_interactive=True)
+    monkeypatch.setenv("PRICING_API_KEY", "super-secret-key")
+    payload = [{"name": "model-a", "inputPrice": 1, "outputPrice": 2}]
+
+    def fake_get(url: str, headers: dict[str, str], timeout: float) -> httpx.Response:
+        return httpx.Response(200, json=payload, request=httpx.Request("GET", url))
+
+    monkeypatch.setattr(pricing.httpx, "get", fake_get)
+    runner = CliRunner()
+
+    result = runner.invoke(
+        app,
+        [
+            "pricing",
+            "refresh",
+            "--endpoint",
+            "https://models.example.test/v1/models",
+            "--api-key-env",
+            "PRICING_API_KEY",
+            "--dry-run",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "super-secret-key" not in result.output
+    assert "PRICING_API_KEY" not in result.output

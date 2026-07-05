@@ -321,9 +321,45 @@ def pricing_status() -> None:
 
 
 @pricing_app.command("refresh")
-def pricing_refresh() -> None:
+def pricing_refresh(
+    endpoint: Optional[str] = typer.Option(
+        None,
+        "--endpoint",
+        help="Model catalog endpoint. Overrides COSTGUARD_PRICING_URL for this run.",
+    ),
+    api_key_env: Optional[str] = typer.Option(
+        None,
+        "--api-key-env",
+        help="Environment variable containing the pricing API key. The key is never printed or cached.",
+    ),
+    auth_header: Optional[str] = typer.Option(
+        None,
+        "--auth-header",
+        help="Authentication header name, for example x-api-key.",
+    ),
+    auth_scheme: Optional[str] = typer.Option(
+        None,
+        "--auth-scheme",
+        help="Optional auth scheme prefix, for example Bearer. Leave empty for raw API keys.",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Fetch and parse pricing without writing pricing.yaml or models.json.",
+    ),
+    timeout: float = typer.Option(30.0, "--timeout", help="HTTP timeout in seconds."),
+) -> None:
     try:
-        _print_pricing(pricing_mod.refresh())
+        _print_pricing(
+            pricing_mod.refresh(
+                endpoint=endpoint,
+                api_key_env=api_key_env,
+                auth_header=auth_header,
+                auth_scheme=auth_scheme,
+                dry_run=dry_run,
+                timeout=timeout,
+            )
+        )
     except Exception as exc:
         console.print(f"[red]{escape(str(exc))}[/red]")
         raise typer.Exit(code=1) from exc

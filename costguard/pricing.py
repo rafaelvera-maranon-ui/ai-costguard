@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -89,32 +90,62 @@ def save_pricing(models: dict[str, dict[str, Any]], home: Path | None = None, so
     return destination
 
 
-def _auth_headers(env: dict[str, str]) -> dict[str, str]:
+def _auth_headers(
+    env: dict[str, str],
+    api_key_env: str | None = None,
+    auth_header: str | None = None,
+    auth_scheme: str | None = None,
+) -> dict[str, str]:
     headers = {"accept": "application/json"}
-    key = env.get("COSTGUARD_PRICING_API_KEY", "")
-    header = env.get("COSTGUARD_PRICING_AUTH_HEADER", "x-api-key")
-    scheme = env.get("COSTGUARD_PRICING_AUTH_SCHEME", "")
+    key_env = api_key_env or env.get("COSTGUARD_PRICING_API_KEY_ENV", "")
+    key = os.environ.get(key_env, "") if key_env else env.get("COSTGUARD_PRICING_API_KEY", "")
+    if key_env and not key:
+        raise RuntimeError(f"Pricing API key environment variable is not set: {key_env}")
+    header = auth_header or env.get("COSTGUARD_PRICING_AUTH_HEADER", "x-api-key")
+    scheme = auth_scheme if auth_scheme is not None else env.get("COSTGUARD_PRICING_AUTH_SCHEME", "")
     if key and header:
         headers[header] = f"{scheme} {key}".strip() if scheme else key
     return headers
 
 
-def refresh(home: Path | None = None) -> dict[str, Any]:
+def refresh(
+    home: Path | None = None,
+    endpoint: str | None = None,
+    api_key_env: str | None = None,
+    auth_header: str | None = None,
+    auth_scheme: str | None = None,
+    dry_run: bool = False,
+    timeout: float = 30,
+) -> dict[str, Any]:
     home = home or paths.costguard_home()
     env = config.load_env(home)
-    url = env.get("COSTGUARD_PRICING_URL", "")
+    url = endpoint or env.get("COSTGUARD_PRICING_URL", "")
     if not url:
-        raise RuntimeError("COSTGUARD_PRICING_URL is not configured.")
-    response = httpx.get(url, headers=_auth_headers(env), timeout=30)
+        raise RuntimeError("Pricing endpoint is not configured. Set COSTGUARD_PRICING_URL or pass --endpoint.")
+    response = httpx.get(url, headers=_auth_headers(env, api_key_env, auth_header, auth_scheme), timeout=timeout)
     response.raise_for_status()
     payload = response.json()
     models = parse_catalog(payload)
     if not models:
         raise RuntimeError("Pricing endpoint returned no supported model prices.")
+    if dry_run:
+        return {
+            "dry_run": True,
+            "models": len(models),
+            "pricing_file": paths.pricing_path(home),
+            "models_cache": paths.models_cache_path(home),
+            "written": False,
+        }
     paths.models_cache_path(home).parent.mkdir(parents=True, exist_ok=True)
     paths.models_cache_path(home).write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    pricing_file = save_pricing(models, home, source="COSTGUARD_PRICING_URL")
-    return {"models": len(models), "pricing_file": pricing_file, "models_cache": paths.models_cache_path(home)}
+    pricing_file = save_pricing(models, home, source=url)
+    return {
+        "dry_run": False,
+        "models": len(models),
+        "pricing_file": pricing_file,
+        "models_cache": paths.models_cache_path(home),
+        "written": True,
+    }
 
 
 def _candidate_model_names(model_alias: str, home: Path | None = None) -> list[str]:
