@@ -106,19 +106,19 @@ Expected evidence:
 
 If `Remove-Item` fails, go back to the previous section and check for live processes.
 
-Use the optional Headroom extra only when your team explicitly wants to validate request compression:
-
-```powershell
-uv sync --extra dev --extra headroom
-```
-
-Headroom is not required for the standard CostGuard CLI update.
-
 ## 7. Refresh The Global costguard Command
 
 If the work PC uses `costguard` as a global command, refresh that command after every repo update. This is the standard CLI update step, regardless of whether the change was for setup, pricing, rules, Headroom, docs, or any other future iteration.
 
 This keeps day-to-day commands consistent with the updated repo and avoids falling back to an older installation.
+
+When you announce a new `ai-costguard` CLI update to teammates, this is the standard refresh command to share:
+
+```powershell
+uv tool install --editable "." --link-mode=copy --force
+```
+
+Do not describe this as a Headroom command. Headroom is only one optional feature that can be validated after the CLI itself has been updated.
 
 From the local `ai-costguard` checkout:
 
@@ -166,7 +166,18 @@ Expected commands:
 
 If `costguard` is not available globally, use `uv run costguard ...` from inside the repo and avoid mixing it with older global installations.
 
-## 9. Offline Validations Without Consuming Tokens
+## 9. Optional Headroom Environment Validation
+
+Use the optional Headroom extra only when your team explicitly wants to validate request compression:
+
+```powershell
+uv sync --extra dev --extra headroom
+uv run costguard headroom status
+```
+
+Headroom is not required for the standard CostGuard CLI update.
+
+## 10. Offline Validations Without Consuming Tokens
 
 These validations should not call LLMs or consume upstream provider quota:
 
@@ -195,7 +206,7 @@ Expected evidence:
 
 Do not test Cline against the model during this phase if quota is exhausted or if you only need to validate the local update.
 
-## 10. Configure Pricing Catalog
+## 11. Configure Pricing Catalog
 
 CostGuard can optionally fetch and cache model prices from a provider model catalog. This does not consume LLM tokens because it calls a catalog endpoint, not chat/completions.
 
@@ -248,7 +259,7 @@ The API key is not written to those files. Do not paste real keys into chats, is
 
 If no pricing catalog is configured or cached, CostGuard continues to use fallback estimates from `settings.yaml`.
 
-## 11. Optional Isolated Validation
+## 12. Optional Isolated Validation
 
 To validate `setup` without touching `~/.costguard`, `~/.claude`, or real Claude Code configuration, use temporary paths inside the repo:
 
@@ -264,7 +275,7 @@ uv run costguard cline-config
 
 This isolated validation should not modify real Claude Code configuration. With `--tool cline`, CostGuard only prints Cline configuration and keeps the test inside `COSTGUARD_HOME`.
 
-## 12. What Not To Do
+## 13. What Not To Do
 
 - Do not run this procedure inside client repositories.
 - Do not use `pip install` directly unless a specific runbook says so.
@@ -274,7 +285,7 @@ This isolated validation should not modify real Claude Code configuration. With 
 - Do not test Cline against the model if upstream provider quota is exhausted.
 - Do not use `Retry` in Cline when `payload blocked by secret filter` appears; use `Start New Task`.
 
-## 13. Troubleshooting
+## 14. Troubleshooting
 
 ### Case: `uv sync` Fails With `Access denied`
 
@@ -335,7 +346,7 @@ Recommended actions:
 - Try a minimal prompt such as `Say OK`.
 - Do not use `Retry` as the first diagnostic step because it may resend the same accumulated context.
 
-## 14. Final Checklist
+## 15. Final Checklist
 
 - [ ] Company fork synchronized from GitHub.
 - [ ] Local checkout updated with `git pull --ff-only`.
