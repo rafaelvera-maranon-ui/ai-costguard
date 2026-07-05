@@ -72,6 +72,19 @@ In isolated development, edit:
 .tmp/costguard/.env
 ```
 
+## Windows Command Notes
+
+If `python` is not in PATH, use the launcher approved on that machine, such as `py`, `uv`, or the corporate Python path. Do not change the global Python install without checking first.
+
+If `costguard` is not in PATH after editable install, call the virtualenv executable directly:
+
+```powershell
+.\.venv\Scripts\costguard.exe doctor
+.\.venv\Scripts\costguard.exe status
+```
+
+PowerShell does not always behave like Bash for command chaining. If `&&` fails, run commands separately or use `;`.
+
 ## Claude Code Settings Look Wrong
 
 Find backups:

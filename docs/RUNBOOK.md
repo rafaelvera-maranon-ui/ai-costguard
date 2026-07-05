@@ -27,6 +27,16 @@ $env:COSTGUARD_HOME = "$(Get-Location)\.tmp\costguard"
 $env:COSTGUARD_CLAUDE_HOME = "$(Get-Location)\.tmp\claude"
 ```
 
+## Reusable Work-PC Prompt
+
+For a controlled validation on a work laptop with Cline, use the reusable Spanish prompt in:
+
+```text
+docs/prompts/work-pc-validation-prompt.es.md
+```
+
+It asks the assistant to run the isolated smoke first, avoid printing secrets, configure only Cline before Claude Code, and use `.venv\Scripts\costguard.exe` on Windows if `costguard` is not in PATH.
+
 ## Install
 
 ```bash

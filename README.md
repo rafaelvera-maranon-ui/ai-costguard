@@ -172,6 +172,7 @@ costguard uninstall --yes
 - `docs/ARCHITECTURE.md`: local proxy architecture and data flow.
 - `docs/SECURITY.md`: security model and local data handling.
 - `docs/TROUBLESHOOTING.md`: common failures and fixes.
+- `docs/prompts/work-pc-validation-prompt.es.md`: reusable Spanish prompt for controlled work-PC validation with Cline.
 
 ## License
 
