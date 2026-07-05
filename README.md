@@ -6,6 +6,8 @@ Technically, it is a local wrapper around model traffic and tool usage. It sits 
 
 It is not a full agent, model provider, cloud service, Docker stack, Postgres service, or VS Code extension. The package is intentionally small: a CLI, a localhost proxy, editable rules, optional Claude Code hooks, Cline configuration text, and local storage under `COSTGUARD_HOME`.
 
+![AI Cost Guard architecture cover](docs/assets/ai-costguard-architecture-cover.png)
+
 ```text
 VS Code
   Cline       -> http://127.0.0.1:4040/v1 -> Cost Guard -> OpenAI-compatible upstream
