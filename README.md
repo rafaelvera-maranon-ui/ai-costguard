@@ -1,8 +1,10 @@
 # AI Cost Guard
 
-AI Cost Guard is a local-first AI gateway/middleware for developers using coding agents in VS Code, mainly Cline and Claude Code. It sits between the local agent and your configured upstream model provider, applying budget checks, rule-based command guardrails, output limits, model aliases, and SQLite usage accounting.
+AI Cost Guard is a local-first AI gateway/middleware for developers using coding agents in VS Code, mainly Cline and Claude Code.
 
-It is not a full agent, model provider, cloud service, or VS Code extension. The shipped package is a small CLI plus a localhost proxy, editable rules, Claude Code hooks, Cline configuration text, and local storage under `COSTGUARD_HOME`.
+Technically, it is a local wrapper around model traffic and tool usage. It sits between the local coding agent and your configured upstream model provider, then applies budget checks, rule-based command guardrails, output limits, model aliases, and SQLite usage accounting before forwarding allowed requests.
+
+It is not a full agent, model provider, cloud service, Docker stack, Postgres service, or VS Code extension. The package is intentionally small: a CLI, a localhost proxy, editable rules, optional Claude Code hooks, Cline configuration text, and local storage under `COSTGUARD_HOME`.
 
 ```text
 VS Code
@@ -10,16 +12,57 @@ VS Code
   Claude Code -> http://127.0.0.1:4040    -> Cost Guard -> Anthropic-compatible upstream
 ```
 
-## Solution Components
+## At A Glance
 
-- CLI: `costguard setup`, `doctor`, `status`, `rules`, `budget`, `usage`, `cache`, `headroom`, and `uninstall`.
-- Local proxy: localhost HTTP gateway for OpenAI-compatible Cline traffic and Anthropic-compatible Claude Code traffic.
-- Rules: editable YAML files for blocked paths, blocked commands, command rewrites, log handling, and output limits.
-- Hooks: Claude Code `PreToolUse` and `PostToolUse` commands that block risky access and reduce noisy tool output.
-- Safe commands: small helper scripts such as `short-diff`, `safe-grep`, `summarize-log`, and `test-failures-only`.
-- SQLite store: local `costguard.db` for usage metadata, budget state, and audit events.
-- Config files: `.env` and `config/settings.yaml` under `COSTGUARD_HOME`.
-- Docs: runbook, architecture notes, security notes, and troubleshooting guide.
+- Local middleware: runs on the developer machine and forwards to the upstream provider you configure.
+- Plug-and-play CLI: `setup`, `doctor`, `status`, `rules`, `budget`, `usage`, and `uninstall`.
+- Reversible install: backs up Claude Code settings before adding Cost Guard and restores them on uninstall.
+- Local budget store: uses SQLite in `COSTGUARD_HOME`, not Postgres or Docker.
+- Repo-safe by default: does not modify client repositories unless `costguard attach` is explicitly run.
+- Editable rules: YAML rules can be reviewed and changed without changing Python code.
+- Metadata-only logging: prompts and responses are not stored by default.
+
+## Core Components
+
+These pieces are installed by `costguard setup` and are expected to work in the base solution:
+
+| Component | Purpose |
+| --- | --- |
+| CLI | Runs setup, validation, status, budget, rules, usage, cache, Headroom status, and uninstall commands. |
+| Local proxy | Provides `127.0.0.1:4040` for model traffic and forwards allowed requests to configured upstreams. |
+| Config home | Stores all Cost Guard state under `COSTGUARD_HOME` or `~/.costguard` by default. |
+| Claude home override | Uses `COSTGUARD_CLAUDE_HOME` instead of `~/.claude` when set, which is essential for safe smoke tests. |
+| `.env` | Holds upstream base URLs, model names, local proxy key, and runtime flags. |
+| `settings.yaml` | Holds tool selection, active model alias, budget mode, cache mode, and other local settings. |
+| Rules | YAML files for blocked paths, blocked commands, command rewrites, log handling, and output limits. |
+| Safe commands | Helper scripts such as `short-diff`, `safe-grep`, `summarize-log`, and `test-failures-only`. |
+| SQLite store | Local `costguard.db` for usage metadata, budget checks, and audit events. |
+| Doctor checks | Validates required files, rules, hooks, safe commands, budgets, and proxy health. |
+| Uninstall | Stops the proxy, restores Claude Code settings from a clean backup when available, and removes Cost Guard fragments otherwise. |
+
+## Tool Integrations
+
+These integrations are part of the base package, but they are only activated according to `--tool` and user configuration:
+
+| Integration | How It Works |
+| --- | --- |
+| Cline | `costguard cline-config` prints OpenAI-compatible settings to paste into Cline. Cline is not edited automatically. |
+| Claude Code | `setup --tool claude-code` or `setup --tool both` merges Cost Guard env vars and hooks into Claude Code `settings.json` after creating a backup. |
+| Model aliases | `cg-cheap`, `cg-standard`, `cg-strong`, and `cg-sonnet` map to upstream model names configured in `.env`. |
+| Hooks | Claude Code `PreToolUse` can block or rewrite risky/noisy tool calls; `PostToolUse` records local metadata. |
+
+## Optional Components
+
+These pieces are available but disabled or opt-in by default:
+
+| Component | Default | Purpose |
+| --- | --- | --- |
+| Cache | Disabled | Local scaffold for basic or semantic cache modes. |
+| Headroom | Disabled | Optional compression integration when the `headroom` package is installed. |
+| Project attach | Not run | `costguard attach` writes project-local Claude metadata only when explicitly requested. |
+| Purge uninstall | Not run | `costguard uninstall --purge --yes` deletes `COSTGUARD_HOME`; plain uninstall keeps it. |
+| Non-local bind host | Not used | The proxy defaults to `127.0.0.1` and warns if another host is selected. |
+| Content logging | Disabled | Metadata is logged by default; prompt/response content is not stored unless explicitly enabled. |
 
 ## What It Does
 
