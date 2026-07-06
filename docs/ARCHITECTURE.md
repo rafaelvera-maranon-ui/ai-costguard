@@ -14,10 +14,10 @@ Cline is configured manually:
 Provider: OpenAI Compatible
 Base URL: http://127.0.0.1:4040/v1
 API Key: sk-costguard-local
-Model ID: cg-standard
+Model ID: cg-active
 ```
 
-Cost Guard maps category aliases to upstream OpenAI-compatible model names from `.env`: `cg-cheap`, `cg-standard`, and `cg-strong`.
+Cost Guard maps category aliases to upstream OpenAI-compatible model names from `.env`. `cg-active` resolves to the currently selected category; `cg-cheap`, `cg-standard`, and `cg-strong` are fixed categories.
 
 ## Claude Code Flow
 
@@ -62,7 +62,7 @@ Cost Guard ships with fallback local cost estimates so the budget feature works 
 
 This is intentionally provider-neutral. A company can point Cost Guard at its own OpenAI-compatible, Anthropic-compatible, Bedrock-backed, or internal GenAI catalog as long as it exposes model names and input/output prices. Provider quotas and HTTP 429 responses remain upstream controls; Cost Guard budget remains a local policy.
 
-The canonical Cost Guard model aliases are `cg-cheap`, `cg-standard`, and `cg-strong`. They are local categories, not provider names. Each workstation maps those aliases to approved real model IDs in `.env`.
+The canonical fixed Cost Guard model aliases are `cg-cheap`, `cg-standard`, and `cg-strong`. They are local categories, not provider names. Each workstation maps those aliases to approved real model IDs in `.env`. The dynamic alias `cg-active` lets clients such as Cline follow the active category without editing client settings after each switch.
 
 ## Semantic Cache
 

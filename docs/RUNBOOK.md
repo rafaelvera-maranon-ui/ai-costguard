@@ -87,8 +87,10 @@ Expected values:
 Provider: OpenAI Compatible
 Base URL: http://127.0.0.1:4040/v1
 API Key: sk-costguard-local
-Model ID: cg-standard
+Model ID: cg-active
 ```
+
+Use `cg-active` for dynamic routing. Then `costguard use cheap|standard|strong` changes the upstream model without editing Cline again. Use `cg-standard`, `cg-cheap`, or `cg-strong` only when you want Cline pinned to a fixed category.
 
 ## Daily Checks
 
@@ -111,7 +113,11 @@ costguard use standard
 costguard use strong
 ```
 
-Canonical aliases are `cg-cheap`, `cg-standard`, and `cg-strong`.
+Canonical fixed aliases are `cg-cheap`, `cg-standard`, and `cg-strong`. The dynamic alias `cg-active` resolves to whichever fixed alias is currently selected by `costguard use`.
+
+If Cline is configured with `cg-standard`, it stays on standard even after `costguard use cheap`. If Cline is configured with `cg-active`, `costguard use cheap|standard|strong` changes routing without touching Cline.
+
+Future option, not enabled by default: `COSTGUARD_FORCE_ACTIVE_MODEL=true` could force all incoming requests to the active model regardless of the client-provided model ID.
 
 ## Budget
 
@@ -205,9 +211,21 @@ costguard headroom disable
 
 Install only when needed:
 
-```bash
-pip install "ai-costguard[headroom]"
+```powershell
+uv sync --extra dev --extra headroom
+uv run costguard headroom status
 ```
+
+That validates Headroom inside the repo environment with `uv run`.
+
+If the global `costguard` command should also have Headroom available:
+
+```powershell
+uv tool install --editable ".[headroom]" --link-mode=copy --force
+costguard headroom status
+```
+
+`enabled=False` is expected when `COSTGUARD_HEADROOM_ENABLED=false`. End-to-end Headroom compression needs a real Cline/CostGuard request and therefore consumes LLM quota; run it only when quota is available.
 
 ## Attach
 

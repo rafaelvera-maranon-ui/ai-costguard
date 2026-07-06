@@ -160,7 +160,22 @@ uv sync --extra dev --extra headroom
 uv run costguard headroom status
 ```
 
-Headroom is optional and not required for the standard CLI update.
+This validates Headroom in the repo environment with `uv run`.
+
+If the global `costguard` command should also have Headroom available:
+
+```powershell
+uv tool install --editable ".[headroom]" --link-mode=copy --force
+costguard headroom status
+```
+
+The standard global CLI update remains:
+
+```powershell
+uv tool install --editable "." --link-mode=copy --force
+```
+
+`enabled=False` is expected when `COSTGUARD_HEADROOM_ENABLED=false`. A real end-to-end Headroom compression test requires Cline/CostGuard traffic and consumes LLM quota, so run it only when quota is available.
 
 ## 9. Optional Isolated Setup Smoke
 
@@ -178,6 +193,8 @@ uv run costguard uninstall --yes
 ```
 
 With `--tool cline`, setup prints Cline config and does not edit Claude Code settings.
+
+For Cline model routing, use `Model ID: cg-active` when you want `costguard use cheap|standard|strong` to switch the active category. Use `cg-standard`, `cg-cheap`, or `cg-strong` only when you want a fixed category.
 
 ## Troubleshooting
 

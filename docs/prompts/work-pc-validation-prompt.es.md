@@ -169,7 +169,7 @@ En PowerShell no uses `&&`; ejecuta comandos separados o usa `;`.
 Prueba adicional obligatoria para validar proxy OpenAI Compatible sin Cline:
 - Arranca `costguard start` en una terminal separada si no esta arrancado.
 - Ejecuta una llamada minima contra `http://127.0.0.1:4040/v1/chat/completions` usando:
-  - model: `cg-standard`
+  - model: `cg-active`
   - message: `Di OK`
   - API key local: `sk-costguard-local`
 - Comprueba que responde correctamente.
@@ -256,8 +256,12 @@ Muestrame que poner en Cline:
 Provider: OpenAI Compatible
 Base URL: http://127.0.0.1:4040/v1
 API Key: sk-costguard-local
-Model ID: cg-standard
+Model ID: cg-active
 ```
+
+Explica la diferencia:
+- `cg-active` permite que `costguard use cheap|standard|strong` cambie el routing sin editar Cline.
+- `cg-standard`, `cg-cheap` y `cg-strong` son aliases fijos.
 
 No intentes modificar Cline automaticamente si no esta claro como hacerlo.
 

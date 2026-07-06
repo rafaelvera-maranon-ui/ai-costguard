@@ -35,10 +35,10 @@ Confirm Cline has:
 Provider: OpenAI Compatible
 Base URL: http://127.0.0.1:4040/v1
 API Key: sk-costguard-local
-Model ID: cg-standard
+Model ID: cg-active
 ```
 
-Also confirm `OPENAI_UPSTREAM_BASE_URL`, `OPENAI_UPSTREAM_API_KEY`, and model variables are set in `.env`.
+Use `cg-active` if you expect `costguard use cheap|standard|strong` to change routing. If Cline is set to `cg-standard`, it is pinned to that fixed category. Also confirm `OPENAI_UPSTREAM_BASE_URL`, `OPENAI_UPSTREAM_API_KEY`, and model variables are set in `.env`.
 
 ## Cline Payload Blocked By Secret Filter
 

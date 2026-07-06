@@ -113,8 +113,10 @@ Expected Cline values:
 Provider: OpenAI Compatible
 Base URL: http://127.0.0.1:4040/v1
 API Key: sk-costguard-local
-Model ID: cg-standard
+Model ID: cg-active
 ```
+
+`cg-active` follows `costguard use cheap|standard|strong`. Use `cg-standard`, `cg-cheap`, or `cg-strong` only for fixed routing.
 
 ## Common Errors
 
