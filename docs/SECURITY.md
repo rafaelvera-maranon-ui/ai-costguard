@@ -38,6 +38,10 @@ settings.json.bak.costguard-YYYYMMDDHHMMSS
 
 Uninstall restores from the latest clean backup when available, ignores backups that already contain Cost Guard fragments, and removes Cost Guard backup files after successful cleanup. A localhost `ANTHROPIC_BASE_URL` alone is not treated as Cost Guard; existing user config still gets backed up before setup changes it.
 
+Claude Code setup should be tested first with `COSTGUARD_CLAUDE_HOME` pointing to an isolated `.tmp` directory. Do not modify real `~/.claude/settings.json` without explicit user approval.
+
+The official Claude Code VS Code plugin may not use the same settings path or environment variables as Claude Code CLI. Treat it as unvalidated until a licensed user confirms it can route through the local Cost Guard proxy.
+
 ## Reversible Uninstall
 
 `costguard uninstall` restores Claude Code settings from backup or removes only Cost Guard fragments. It keeps Cost Guard home by default. `--purge --yes` is required to delete the local Cost Guard home.

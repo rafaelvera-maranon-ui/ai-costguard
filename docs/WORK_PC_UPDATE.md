@@ -288,6 +288,29 @@ With `--tool cline`, setup prints Cline config and does not edit Claude Code set
 
 For Cline model routing, use `Model ID: cg-active` when you want `costguard use cheap|standard|strong` to switch the active category. Use `cg-standard`, `cg-cheap`, or `cg-strong` only when you want a fixed category.
 
+## 11. Optional Claude Code CLI Validation
+
+Run only with a teammate who has a Claude Code license/key and an Anthropic-compatible upstream. Do not use the official VS Code plugin as proof until you know it can use a custom endpoint/proxy.
+
+Checklist:
+
+```text
+License/key type known
+Endpoint supports Anthropic Messages API /v1/messages
+ANTHROPIC_UPSTREAM_BASE_URL configured locally
+ANTHROPIC_UPSTREAM_API_KEY configured locally
+ANTHROPIC_MODEL_CHEAP/STANDARD/STRONG mapped locally
+setup --tool claude-code tested first with COSTGUARD_CLAUDE_HOME in .tmp
+settings backup created
+real or controlled /v1/messages request reaches Cost Guard
+usage/budget records appear
+pricing resolves for the mapped model
+costguard use cheap|standard|strong changes ANTHROPIC_MODEL in settings when applicable
+costguard uninstall restores settings
+```
+
+For teams without Claude Code license/key, keep the beta path as Cline + Cost Guard. Claude-family models can still be used through Cline if the company/provider exposes them on the OpenAI-compatible gateway.
+
 ## Troubleshooting
 
 `costguard stop` returns Access denied:

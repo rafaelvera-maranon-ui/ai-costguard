@@ -92,6 +92,54 @@ Model ID: cg-active
 
 Use `cg-active` for dynamic routing. Then `costguard use cheap|standard|strong` changes the upstream model without editing Cline again. Use `cg-standard`, `cg-cheap`, or `cg-strong` only when you want Cline pinned to a fixed category.
 
+## Claude And Anthropic-Compatible Paths
+
+There are three separate scenarios. Keep them distinct.
+
+**A. Cline + Cost Guard + Claude-family models through OpenAI-compatible API**
+
+This is the recommended beta path when your company/provider exposes Claude-family models through an OpenAI-compatible gateway. Keep using Cline settings above and map local categories in `.env`:
+
+```text
+OPENAI_UPSTREAM_BASE_URL=
+OPENAI_UPSTREAM_API_KEY=
+OPENAI_MODEL_CHEAP=<haiku-or-small-model>
+OPENAI_MODEL_STANDARD=<sonnet-or-standard-model>
+OPENAI_MODEL_STRONG=<opus-or-strong-model>
+```
+
+This path is validated with Cline and `cg-active`.
+
+**B. Claude Code CLI + Cost Guard + Anthropic-compatible API**
+
+Cost Guard implements `/v1/messages`, `ANTHROPIC_UPSTREAM_*`, model mapping, budget/usage, pricing lookup, cache, Headroom path, setup backup, hooks, and uninstall restore. It is covered by mock tests, but real end-to-end validation needs a licensed Claude Code user and an Anthropic-compatible upstream key.
+
+```text
+ANTHROPIC_UPSTREAM_BASE_URL=
+ANTHROPIC_UPSTREAM_API_KEY=
+ANTHROPIC_MODEL_CHEAP=
+ANTHROPIC_MODEL_STANDARD=
+ANTHROPIC_MODEL_STRONG=
+```
+
+Validate only with isolated homes first:
+
+```powershell
+$env:COSTGUARD_HOME = "$(Get-Location)\.tmp\costguard"
+$env:COSTGUARD_CLAUDE_HOME = "$(Get-Location)\.tmp\claude"
+costguard setup --tool claude-code --daily-budget 5 --monthly-budget 100 --budget-mode warn --non-interactive
+costguard doctor
+costguard uninstall --yes
+```
+
+Do not touch real `~/.claude/settings.json` unless the user explicitly authorizes it.
+
+**C. Official Claude Code VS Code Plugin**
+
+Do not assume it behaves like Claude Code CLI. It may manage sessions, settings, credentials, and endpoints differently. Treat it as an optional parallel path until a licensed user proves it can route through Cost Guard and that usage/budget are recorded.
+
+Before declaring Claude Code support, validate: setup backup/restore, real `/v1/messages` request, model alias resolution, usage/budget records, pricing resolution, hooks, and uninstall.
+
 ## Daily Checks
 
 Inspect install health, proxy state, usage, and local budget.

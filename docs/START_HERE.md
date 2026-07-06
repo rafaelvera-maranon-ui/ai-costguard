@@ -71,6 +71,13 @@ OPENAI_MODEL_CHEAP=
 OPENAI_MODEL_STANDARD=
 OPENAI_MODEL_STRONG=
 
+# Optional Anthropic-compatible upstream for Claude Code CLI validation.
+ANTHROPIC_UPSTREAM_BASE_URL=
+ANTHROPIC_UPSTREAM_API_KEY=
+ANTHROPIC_MODEL_CHEAP=
+ANTHROPIC_MODEL_STANDARD=
+ANTHROPIC_MODEL_STRONG=
+
 COSTGUARD_PRICING_URL=
 COSTGUARD_PRICING_API_KEY_ENV=OPENAI_UPSTREAM_API_KEY
 COSTGUARD_PRICING_API_KEY=
@@ -86,6 +93,8 @@ COSTGUARD_CACHE_EVICTION_POLICY=lru
 ```
 
 `OPENAI_UPSTREAM_BASE_URL` calls models. `COSTGUARD_PRICING_URL` fetches model prices. They are different endpoints; they may share the same key if your company allows it.
+
+For beta use, prefer Cline + Cost Guard. If Claude-family models are exposed through an OpenAI-compatible gateway, map them to `OPENAI_MODEL_CHEAP/STANDARD/STRONG` and keep Cline on `cg-active`. Claude Code CLI via `ANTHROPIC_UPSTREAM_*` is implemented but needs real validation with a licensed user/key. The official Claude Code VS Code plugin is not considered supported until custom endpoint/proxy behavior is proven.
 
 ## Update Existing CLI
 

@@ -335,6 +335,33 @@ def test_cache_status_shows_limits_and_policy(isolated_env, monkeypatch):
     assert "evicted_entries" in status
 
 
+def test_cache_inspect_shows_iso_timestamps(isolated_env, monkeypatch):
+    home = isolated_env["home"]
+    monkeypatch.setenv("COSTGUARD_CACHE_STORE_CONTENT", "true")
+    cache_mod.store_response(
+        key="inspect-key",
+        body=b"inspect",
+        status_code=200,
+        content_type="application/json",
+        output_chars=7,
+        estimated_tokens=2,
+        estimated_cost=0.2,
+        client="cline",
+        path="/v1/chat/completions",
+        model_alias="cg-standard",
+        upstream_model="real-standard",
+        home=home,
+    )
+
+    data = cache_mod.inspect(home)
+
+    item = data["response_items"][0]
+    assert "T" in item["created_at"]
+    assert item["created_at"].endswith("+00:00")
+    assert "T" in item["accessed_at"]
+    assert item["accessed_at"].endswith("+00:00")
+
+
 def test_semantic_cache_status_is_experimental(isolated_env):
     home = isolated_env["home"]
     setup_costguard(tool="cline", non_interactive=True)

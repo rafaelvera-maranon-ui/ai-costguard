@@ -25,7 +25,19 @@ Cost Guard maps category aliases to upstream OpenAI-compatible model names from 
 VS Code -> Claude Code -> http://127.0.0.1:4040 -> Cost Guard -> Anthropic-compatible upstream
 ```
 
-Claude Code is configured by merging Cost Guard environment variables and hooks into `settings.json`. Existing settings are preserved and a backup is created first when the file is not already instrumented by Cost Guard.
+Claude Code CLI is configured by merging Cost Guard environment variables and hooks into `settings.json`. Existing settings are preserved and a backup is created first when the file is not already instrumented by Cost Guard.
+
+In this project, Anthropic-compatible means:
+
+- Cost Guard accepts Anthropic Messages-style requests on `/v1/messages`.
+- The proxy forwards them to `ANTHROPIC_UPSTREAM_BASE_URL`.
+- The upstream key comes from `ANTHROPIC_UPSTREAM_API_KEY`.
+- Model aliases map through `ANTHROPIC_MODEL_CHEAP`, `ANTHROPIC_MODEL_STANDARD`, and `ANTHROPIC_MODEL_STRONG`.
+- `cg-active` resolves to the currently selected fixed category before forwarding.
+
+This route is implemented and covered by mock proxy tests. A real Claude Code CLI smoke requires a licensed user/key and an upstream that actually supports the Anthropic Messages API.
+
+The official Claude Code VS Code plugin is not assumed to be equivalent to the CLI. It may use different settings, session handling, or credential storage, so it remains unvalidated until proven with a licensed user.
 
 ## Where Cost Guard Lives
 
@@ -112,7 +124,7 @@ The proxy exposes:
 
 - `/health`
 - `/v1/chat/completions` for OpenAI-compatible Cline traffic
-- `/v1/messages` for Anthropic-compatible Claude Code traffic
+- `/v1/messages` for Anthropic-compatible Claude Code CLI traffic
 
 It validates the local API key, applies a basic secret filter, maps model aliases, optionally serves an exact-match response cache hit, checks budgets for cache misses, estimates cost from local pricing or fallback settings, forwards to the configured upstream, applies output limits where possible, and stores metadata in SQLite.
 
@@ -123,4 +135,6 @@ It validates the local API key, applies a basic secret filter, maps model aliase
 - Semantic cache is scaffolded/experimental, not a full vector implementation. It should not be presented as functional until embeddings, vector storage, similarity thresholds, semantic hit/miss metrics, and tests exist.
 - Headroom requires a compatible external adapter; no adapter is bundled in the base package.
 - Cline still requires manual configuration.
+- Claude Code CLI still requires real end-to-end validation with a licensed user and an Anthropic-compatible upstream.
+- The official Claude Code VS Code plugin is not validated as a Cost Guard integration path.
 - Upstream-specific edge cases may need adapter improvements.

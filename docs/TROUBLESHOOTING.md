@@ -71,6 +71,8 @@ and `costguard budget status` still shows `mode=warn` and `action=allow`, the re
 
 ## Claude Code Does Not Connect
 
+This section refers to Claude Code CLI configured through `~/.claude/settings.json`. The official Claude Code VS Code plugin may use different settings or credential handling and is not considered validated until proven separately.
+
 Run:
 
 ```bash
@@ -86,6 +88,8 @@ ANTHROPIC_MODEL=cg-standard
 ```
 
 Also confirm `ANTHROPIC_UPSTREAM_BASE_URL`, `ANTHROPIC_UPSTREAM_API_KEY`, and model variables are set in `.env`.
+
+If your company exposes Claude-family models through an OpenAI-compatible gateway, the simpler beta path is to use Cline with `OPENAI_MODEL_CHEAP/STANDARD/STRONG` mapped to those models and `Model ID: cg-active`.
 
 ## Missing Variables
 

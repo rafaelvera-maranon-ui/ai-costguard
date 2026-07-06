@@ -4,6 +4,7 @@ import base64
 import hashlib
 import json
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -307,8 +308,8 @@ def inspect(home: Path | None = None, limit: int = 20) -> dict[str, Any]:
             "key": entry.get("key"),
             "model_alias": entry.get("model_alias"),
             "upstream_model": entry.get("upstream_model"),
-            "created_at": entry.get("created_at"),
-            "accessed_at": entry.get("accessed_at"),
+            "created_at": _epoch_to_iso(entry.get("created_at")),
+            "accessed_at": _epoch_to_iso(entry.get("accessed_at")),
             "size_bytes": entry.get("size_bytes"),
             "estimated_tokens": entry.get("estimated_tokens"),
             "estimated_cost": entry.get("estimated_cost"),
@@ -320,6 +321,16 @@ def inspect(home: Path | None = None, limit: int = 20) -> dict[str, Any]:
 
 def _response_path(key: str, home: Path) -> Path:
     return paths.response_cache_dir(home) / f"{key}.json"
+
+
+def _epoch_to_iso(value: object) -> str:
+    try:
+        timestamp = float(value or 0)
+    except (TypeError, ValueError):
+        return "n/a"
+    if timestamp <= 0:
+        return "n/a"
+    return datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat()
 
 
 def _response_entries(home: Path) -> list[dict[str, Any]]:
