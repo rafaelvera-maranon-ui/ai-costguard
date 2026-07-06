@@ -295,7 +295,7 @@ headroom_skipped_count
 headroom_last_skip_reason
 ```
 
-Common reasons are `skipped_streaming`, `skipped_tools`, `skipped_no_messages`, `skipped_adapter_error`, and `skipped_no_change`.
+Common reasons are `skipped_tools`, `skipped_no_messages`, `skipped_adapter_error`, and `skipped_no_change`. Cline commonly sends `stream=true`; current Cost Guard versions can still apply Headroom before upstream forwarding and then pass SSE through unchanged. `skipped_streaming` means streaming compression is disabled locally or that path cannot safely apply it.
 
 Before spending more LLM quota, run:
 

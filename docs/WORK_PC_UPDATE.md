@@ -247,6 +247,8 @@ headroom_reduction_ratio > 0
 
 `outputs_reduced` is not Headroom evidence; it means output limits truncated an oversized response. `headroom status` with `enabled=True` and `active=True` only proves the adapter is installed/configured. The input-shape diagnostics print metadata such as adapter result keys and payload reconstruction status, not prompt content.
 
+Cline commonly sends `stream=true`. Cost Guard applies Headroom before forwarding the request upstream and then passes the SSE response through unchanged. Good real evidence is `headroom_compressible_message_count > 0`, `headroom_applied_count > 0`, and `headroom_tokens_saved > 0`.
+
 With the official `headroom.compress` adapter, `messages-list` is the expected compatible shape. `raw-text`, `openai-payload`, and `concatenated-messages-text` can fail with `skipped_adapter_error` because the adapter expects `compress(messages, model=...)`.
 
 Headroom defaults are coding-agent-safe:
@@ -255,6 +257,7 @@ Headroom defaults are coding-agent-safe:
 COSTGUARD_HEADROOM_COMPRESS_USER_MESSAGES=false
 COSTGUARD_HEADROOM_PROTECT_RECENT=4
 COSTGUARD_HEADROOM_MIN_TOKENS_TO_COMPRESS=250
+COSTGUARD_HEADROOM_ON_STREAMING=true
 ```
 
 Single recent `user` prompts may produce `skipped_no_change`. To test user-message compression offline only:
@@ -306,6 +309,8 @@ skipped_below_threshold
 skipped_secret_detected
 skipped_reconstruction_error
 ```
+
+`skipped_streaming` should only appear when streaming compression is disabled locally or a path cannot safely apply it.
 
 Until `headroom_applied_count > 0` appears on a real request, treat Headroom as experimental for that work-PC path.
 

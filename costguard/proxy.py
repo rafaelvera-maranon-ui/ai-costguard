@@ -345,11 +345,12 @@ class CostGuardHandler(BaseHTTPRequestHandler):
             return
 
         upstream_url = _append_path(upstream, self.path)
-        if client == "claude-code" and parse_bool(payload.get("stream"), default=False):
+        if parse_bool(payload.get("stream"), default=False):
             self._forward_streaming_response(
                 upstream_url=upstream_url,
                 payload=payload,
                 headers=headers,
+                client=client,
                 input_chars=input_chars,
                 model_alias=model_alias,
                 upstream=upstream,
@@ -456,6 +457,7 @@ class CostGuardHandler(BaseHTTPRequestHandler):
         upstream_url: str,
         payload: dict[str, Any],
         headers: dict[str, str],
+        client: str,
         input_chars: int,
         model_alias: str,
         upstream: str,
@@ -492,7 +494,7 @@ class CostGuardHandler(BaseHTTPRequestHandler):
         )
         record_usage(
             {
-                "client": "claude-code",
+                "client": client,
                 "model_alias": model_alias,
                 "upstream": upstream,
                 "input_chars": input_chars,

@@ -190,7 +190,7 @@ def transform_payload(
     if rules.has_secret_like_content(json.dumps(payload)):
         return TransformResult(payload=payload, applied=False, skipped_reason=SKIPPED_SECRET_DETECTED)
 
-    skip_reason = _skip_reason(payload, client)
+    skip_reason = _skip_reason(payload, client, home)
     if skip_reason is not None:
         return TransformResult(payload=payload, applied=False, skipped_reason=skip_reason)
 
@@ -423,7 +423,7 @@ def _diagnose_adapter_shape(
     if not config.headroom_enabled(home) and not force_enabled:
         return TransformResult(payload=payload, applied=False, skipped_reason=SKIPPED_DISABLED)
 
-    skip_reason = _skip_reason(payload, client)
+    skip_reason = _skip_reason(payload, client, home)
     if skip_reason is not None:
         return TransformResult(payload=payload, applied=False, skipped_reason=skip_reason)
 
@@ -1282,17 +1282,22 @@ def _estimate_tokens(chars: int) -> int:
     return max(1, int((chars + 3) / 4))
 
 
-def _skip_reason(payload: dict[str, Any], client: str) -> str | None:
+def _skip_reason(payload: dict[str, Any], client: str, home: Path) -> str | None:
     if client not in HEADROOM_CLIENTS:
         return SKIPPED_NOT_ELIGIBLE
-    if parse_bool(payload.get("stream"), default=False):
-        return SKIPPED_STREAMING
     if _has_tools(payload):
         return SKIPPED_TOOLS
     messages = payload.get("messages")
     if not isinstance(messages, list) or not messages:
         return SKIPPED_NO_MESSAGES
+    if parse_bool(payload.get("stream"), default=False) and not _headroom_on_streaming(home):
+        return SKIPPED_STREAMING
     return None
+
+
+def _headroom_on_streaming(home: Path) -> bool:
+    env = config.load_env(home)
+    return parse_bool(env.get("COSTGUARD_HEADROOM_ON_STREAMING"), default=True)
 
 
 def _has_tools(payload: dict[str, Any]) -> bool:

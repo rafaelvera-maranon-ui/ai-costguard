@@ -103,7 +103,7 @@ Expired entries are removed during status/read/write/clear-expired paths. If the
 
 ## Headroom
 
-Headroom is an optional request compression layer. It is not a core dependency and is disabled by default. When enabled, Cost Guard imports the Python module installed by `headroom-ai` and applies it after the local secret filter and model alias mapping, but before budget estimation and upstream forwarding.
+Headroom is an optional request compression layer. It is not a core dependency and is disabled by default. When enabled, Cost Guard imports the Python module installed by `headroom-ai` and applies it after the local secret filter and model alias mapping, but before budget estimation and upstream forwarding. For `stream=true` requests, Headroom still runs before the upstream call; the response is then passed through as SSE without modification.
 
 The preferred integration is the official library API:
 
@@ -126,6 +126,7 @@ Cost Guard keeps Headroom's coding-agent-safe defaults unless changed locally:
 COSTGUARD_HEADROOM_COMPRESS_USER_MESSAGES=false
 COSTGUARD_HEADROOM_PROTECT_RECENT=4
 COSTGUARD_HEADROOM_MIN_TOKENS_TO_COMPRESS=250
+COSTGUARD_HEADROOM_ON_STREAMING=true
 ```
 
 Those defaults can produce `skipped_no_change` for a single recent user prompt. `outputs_reduced` belongs to output limits and is not Headroom evidence. `headroom status` means installed/configured; real compression is proven by positive Headroom savings, not by install status alone.
@@ -146,7 +147,7 @@ It validates the local API key, applies a basic secret filter, maps model aliase
 ## Limitations
 
 - Cost estimates are approximate.
-- Streaming is implemented for Anthropic-compatible `/v1/messages`; OpenAI-compatible streaming is still treated conservatively and is not response-cached.
+- Streaming passthrough is implemented for `/v1/messages` and `/v1/chat/completions`; streaming responses are not response-cached.
 - Semantic cache is scaffolded/experimental, not a full vector implementation. It should not be presented as functional until embeddings, vector storage, similarity thresholds, semantic hit/miss metrics, and tests exist.
 - Headroom requires a compatible external adapter; no adapter is bundled in the base package.
 - Cline still requires manual configuration.

@@ -68,6 +68,35 @@ def _fake_upstream(monkeypatch) -> dict[str, int]:
     return calls
 
 
+def _fake_streaming_upstream(monkeypatch) -> dict[str, int]:
+    calls = {"count": 0}
+    json_dumps = json.dumps
+
+    class FakeStreamResponse:
+        status_code = 200
+        headers = httpx.Headers({"content-type": "application/json"})
+
+        def __init__(self, body: bytes) -> None:
+            self.body = body
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return False
+
+        def iter_bytes(self):
+            yield self.body
+
+    def fake_stream(method: str, url: str, json: dict[str, Any], headers: dict[str, str], timeout: int):
+        calls["count"] += 1
+        body = json_dumps({"id": f"stream-call-{calls['count']}", "model": json["model"]}).encode("utf-8")
+        return FakeStreamResponse(body)
+
+    monkeypatch.setattr(proxy.httpx, "stream", fake_stream)
+    return calls
+
+
 def _chat_payload(extra: dict[str, Any] | None = None) -> dict[str, Any]:
     payload = {
         "model": "cg-standard",
@@ -144,7 +173,7 @@ def test_basic_cache_requires_explicit_content_storage(isolated_env, monkeypatch
 def test_streaming_requests_are_not_cached(isolated_env, monkeypatch):
     home = isolated_env["home"]
     _install_with_cache(home, monkeypatch, store_content=True)
-    calls = _fake_upstream(monkeypatch)
+    calls = _fake_streaming_upstream(monkeypatch)
 
     _post_to_proxy(home, _chat_payload({"stream": True}))
     _post_to_proxy(home, _chat_payload({"stream": True}))

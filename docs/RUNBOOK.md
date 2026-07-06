@@ -195,6 +195,8 @@ cache_cost_saved             estimated local cost avoided because of cache hits
 
 Do not use `outputs_reduced` as cache or Headroom evidence. It belongs to output limits, not request compression or cache hits. `enabled=True` and `active=True` in `headroom status` mean the adapter is installed and configured; real request compression is only proven when `headroom_applied_count > 0`.
 
+Cline commonly sends `stream=true`. Cost Guard can still apply Headroom because compression happens before forwarding the request upstream; the streaming/SSE response is then passed through unchanged.
+
 ## Model Routing With Cline And Claude Code
 
 Cline sends the Model ID configured in its UI on every request. Claude Code sends the model from its settings or UI/session state. If either client is set to `cg-standard`, it keeps asking for `cg-standard` even if Cost Guard active model is `cg-cheap`.
@@ -517,6 +519,7 @@ COSTGUARD_HEADROOM_COMPRESS_USER_MESSAGES=false
 COSTGUARD_HEADROOM_PROTECT_RECENT=4
 COSTGUARD_HEADROOM_TARGET_RATIO=
 COSTGUARD_HEADROOM_MIN_TOKENS_TO_COMPRESS=250
+COSTGUARD_HEADROOM_ON_STREAMING=true
 ```
 
 Keep `compress_user_messages=false` unless you explicitly accept that Headroom may rewrite user-provided context. For coding agents, prefer samples or real traffic containing older tool/log outputs.
@@ -549,7 +552,7 @@ Known skip reasons:
 ```text
 skipped_disabled      Headroom is disabled in local config
 skipped_not_eligible  request/client shape is not eligible
-skipped_streaming     streaming request skipped for safe passthrough
+skipped_streaming     streaming compression disabled by local policy or path limitation
 skipped_tools         tools/functions request skipped to avoid tool-call changes
 skipped_no_messages   payload has no messages list
 skipped_adapter_error adapter failed or returned an invalid shape

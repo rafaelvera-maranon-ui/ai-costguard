@@ -360,6 +360,8 @@ Evidence:
 - `headroom_reduction_ratio > 0` when compression is effective
 - `headroom_last_transforms_applied` is not empty when the adapter reports transforms
 
+Cline commonly sends `stream=true`; Cost Guard should apply Headroom before upstream forwarding and preserve the SSE response. `skipped_streaming` only means streaming compression is disabled locally or unavailable on that path.
+
 If `headroom_applied_count` stays `0`, inspect:
 
 ```text
