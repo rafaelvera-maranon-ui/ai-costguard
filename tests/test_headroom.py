@@ -63,6 +63,7 @@ def test_headroom_enable_and_transform_payload(isolated_env, monkeypatch):
 
     assert status["active"] is True
     assert status["adapter"] == "compress_payload"
+    assert status["install_hint"] == "n/a"
     assert result.applied is True
     assert result.adapter == "compress_payload"
     assert result.payload["messages"][0]["content"] == "short context"

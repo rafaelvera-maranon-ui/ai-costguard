@@ -51,13 +51,14 @@ def status(home: Path | None = None) -> dict[str, Any]:
     adapter = _adapter_callable()
     adapter_name = adapter[0] if adapter else ""
     enabled = config.headroom_enabled(home)
+    install_hint = "n/a" if adapter is not None else 'pip install "ai-costguard[headroom]" or pip install headroom-ai'
     return {
         "available": available(),
         "compatible": adapter is not None,
         "enabled": enabled,
         "active": enabled and adapter is not None,
         "adapter": adapter_name,
-        "install_hint": 'pip install "ai-costguard[headroom]" or pip install headroom-ai',
+        "install_hint": install_hint,
     }
 
 

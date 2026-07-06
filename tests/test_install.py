@@ -65,7 +65,8 @@ def test_cli_cline_config_prints_expected_values(isolated_env):
     assert "Provider: OpenAI Compatible" in result.output
     assert "Base URL: http://127.0.0.1:4040/v1" in result.output
     assert "API Key: sk-costguard-local" in result.output
-    assert "Model ID: cg-standard" in result.output
+    assert "Model ID: cg-active" in result.output
+    assert "Fixed Model IDs: cg-cheap, cg-standard, cg-strong" in result.output
 
 
 def test_cli_use_accepts_category_aliases_and_rejects_provider_alias(isolated_env):

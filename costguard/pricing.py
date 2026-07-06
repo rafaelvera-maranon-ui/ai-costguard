@@ -200,8 +200,9 @@ def _candidate_model_names(model_alias: str, home: Path | None = None) -> list[s
     env = config.load_env(home)
     candidates = [
         model_alias,
-        config.model_for_client(model_alias, "cline", env),
-        config.model_for_client(model_alias, "claude-code", env),
+        config.resolve_model_alias(model_alias, home),
+        config.model_for_client(model_alias, "cline", env, home),
+        config.model_for_client(model_alias, "claude-code", env, home),
     ]
     return [candidate for candidate in dict.fromkeys(candidates) if candidate]
 

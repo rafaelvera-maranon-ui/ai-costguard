@@ -10,12 +10,15 @@ from . import paths
 from .utils import parse_bool, read_yaml, write_yaml
 
 
+ACTIVE_MODEL_ALIAS = "cg-active"
+
 MODEL_ALIASES = {
     "cheap": "cg-cheap",
     "standard": "cg-standard",
     "strong": "cg-strong",
 }
 
+FIXED_MODEL_ALIASES = set(MODEL_ALIASES.values())
 PREMIUM_ALIASES = {"cg-strong"}
 
 DEFAULT_ENV = {
@@ -129,12 +132,24 @@ def update_budget(
 def set_active_model(alias: str, home: Path | None = None, dry_run: bool = False) -> dict[str, Any]:
     if alias in MODEL_ALIASES:
         alias = MODEL_ALIASES[alias]
-    if alias not in set(MODEL_ALIASES.values()):
+    if alias == ACTIVE_MODEL_ALIAS:
+        raise ValueError(f"{ACTIVE_MODEL_ALIAS} is a routing alias; choose cheap, standard, or strong.")
+    if alias not in FIXED_MODEL_ALIASES:
         raise ValueError(f"Unknown model alias: {alias}")
     settings = load_settings(home)
     settings["active_model"] = alias
     save_settings(settings, home, dry_run=dry_run)
     return settings
+
+
+def resolve_model_alias(alias: str | None, home: Path | None = None) -> str:
+    if not alias:
+        return str(load_settings(home).get("active_model") or DEFAULT_SETTINGS["active_model"])
+    if alias in MODEL_ALIASES:
+        return MODEL_ALIASES[alias]
+    if alias == ACTIVE_MODEL_ALIAS:
+        return str(load_settings(home).get("active_model") or DEFAULT_SETTINGS["active_model"])
+    return alias
 
 
 def cache_mode(home: Path | None = None) -> str:
@@ -149,8 +164,14 @@ def headroom_enabled(home: Path | None = None) -> bool:
     return bool(settings.get("headroom", {}).get("enabled", parse_bool(env.get("COSTGUARD_HEADROOM_ENABLED"))))
 
 
-def model_for_client(alias: str, client: str, env: dict[str, str] | None = None) -> str:
+def model_for_client(
+    alias: str,
+    client: str,
+    env: dict[str, str] | None = None,
+    home: Path | None = None,
+) -> str:
     values = env or load_env()
+    alias = resolve_model_alias(alias, home)
     if client == "cline":
         mapping = {
             "cg-cheap": values.get("OPENAI_MODEL_CHEAP", ""),

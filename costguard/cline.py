@@ -4,7 +4,8 @@ from __future__ import annotations
 CLINE_CONFIG_TEXT = """Provider: OpenAI Compatible
 Base URL: http://127.0.0.1:4040/v1
 API Key: sk-costguard-local
-Model ID: cg-standard
+Model ID: cg-active
+Fixed Model IDs: cg-cheap, cg-standard, cg-strong
 """
 
 CLINE_STEPS = [
@@ -12,7 +13,7 @@ CLINE_STEPS = [
     "Select OpenAI Compatible.",
     "Paste Base URL.",
     "Paste API Key.",
-    "Set Model ID.",
+    "Set Model ID to cg-active for dynamic routing, or to a fixed cg-* alias.",
     "Save.",
     "Test a short request.",
 ]

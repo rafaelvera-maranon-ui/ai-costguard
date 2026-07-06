@@ -116,8 +116,9 @@ class CostGuardHandler(BaseHTTPRequestHandler):
             _json_response(self, 404, {"error": "unsupported path"})
             return
 
-        model_alias = payload.get("model") or config.load_settings(self.home).get("active_model", "cg-standard")
-        payload["model"] = config.model_for_client(model_alias, "cline" if client == "cline" else "claude-code", env)
+        requested_model = payload.get("model")
+        model_alias = config.resolve_model_alias(str(requested_model) if requested_model else None, self.home)
+        payload["model"] = config.model_for_client(model_alias, "cline" if client == "cline" else "claude-code", env, self.home)
         headroom_rule = None
         try:
             headroom_result = headroom.transform_payload(payload, client, self.home)
