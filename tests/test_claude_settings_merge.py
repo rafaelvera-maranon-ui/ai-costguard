@@ -13,7 +13,8 @@ def test_merge_preserves_existing_settings_and_avoids_duplicate_hooks(isolated_e
     merged_again = merge_settings(merged, fragment)
 
     assert merged_again["env"]["USER_KEY"] == "keep"
-    assert merged_again["env"]["ANTHROPIC_MODEL"] == "cg-standard"
+    assert merged_again["env"]["ANTHROPIC_MODEL"] == "cg-active"
+    assert "CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY" not in merged_again["env"]
     commands = [
         hook["command"]
         for entry in merged_again["hooks"]["PreToolUse"]

@@ -38,6 +38,7 @@ def test_setup_creates_structure_sqlite_and_claude_settings(isolated_env):
 
     settings = json.loads((claude_home / "settings.json").read_text(encoding="utf-8"))
     assert settings["env"]["ANTHROPIC_BASE_URL"] == "http://127.0.0.1:4040"
+    assert settings["env"]["ANTHROPIC_MODEL"] == "cg-active"
     assert "PreToolUse" in settings["hooks"]
 
 
@@ -83,3 +84,14 @@ def test_cli_use_accepts_category_aliases_and_rejects_provider_alias(isolated_en
     assert result.exit_code == 1
     assert "Unknown model alias: provider-specific" in result.output
     assert "Traceback" not in result.output
+
+
+def test_cli_use_leaves_dynamic_claude_code_model_alias(isolated_env):
+    setup_costguard(tool="claude-code", non_interactive=True)
+    runner = CliRunner()
+
+    result = runner.invoke(app, ["use", "cheap"])
+
+    assert result.exit_code == 0
+    settings = json.loads((isolated_env["claude_home"] / "settings.json").read_text(encoding="utf-8"))
+    assert settings["env"]["ANTHROPIC_MODEL"] == "cg-active"

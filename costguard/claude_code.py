@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from . import paths
+from .config import ACTIVE_MODEL_ALIAS, FIXED_MODEL_ALIASES
 from .utils import read_json, write_json
 
 
@@ -28,8 +29,7 @@ def settings_fragment(costguard_home: Path | None = None) -> dict[str, Any]:
         "env": {
             "ANTHROPIC_BASE_URL": "http://127.0.0.1:4040",
             "ANTHROPIC_AUTH_TOKEN": "sk-costguard-local",
-            "ANTHROPIC_MODEL": "cg-standard",
-            "CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY": "1",
+            "ANTHROPIC_MODEL": ACTIVE_MODEL_ALIAS,
             "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "4096",
             "CLAUDE_CODE_MAX_TURNS": "12",
             "CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY": "3",
@@ -211,6 +211,10 @@ def update_anthropic_model(alias: str, claude_home: Path | None = None, dry_run:
     settings = read_json(settings_path, {})
     env = settings.setdefault("env", {})
     if "ANTHROPIC_MODEL" not in env:
+        return False
+    if env["ANTHROPIC_MODEL"] == ACTIVE_MODEL_ALIAS:
+        return False
+    if env["ANTHROPIC_MODEL"] not in FIXED_MODEL_ALIASES:
         return False
     env["ANTHROPIC_MODEL"] = alias
     write_json(settings_path, settings, dry_run=dry_run)

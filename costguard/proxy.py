@@ -6,12 +6,26 @@ import signal
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 
 import httpx
 
 from . import budget, cache as cache_mod, config, headroom, paths, rules
 from .sqlite_store import record_usage
+from .utils import parse_bool
+
+
+HOP_BY_HOP_HEADERS = {
+    "connection",
+    "content-length",
+    "keep-alive",
+    "proxy-authenticate",
+    "proxy-authorization",
+    "te",
+    "trailer",
+    "transfer-encoding",
+    "upgrade",
+}
 
 
 def _json_response(handler: BaseHTTPRequestHandler, status: int, payload: dict[str, Any]) -> None:
@@ -31,11 +45,54 @@ def _append_path(base_url: str, path: str) -> str:
 
 
 def _client_for_path(path: str) -> str:
-    if path.startswith("/v1/chat/completions"):
+    path_only = urlsplit(path).path
+    if path_only.startswith("/v1/chat/completions"):
         return "cline"
-    if path.startswith("/v1/messages"):
+    if path_only.startswith("/v1/messages"):
         return "claude-code"
     return "unknown"
+
+
+def _authorized(headers: Any, local_key: str) -> bool:
+    auth = headers.get("authorization", "")
+    api_key = headers.get("x-api-key", "")
+    return auth == f"Bearer {local_key}" or api_key == local_key
+
+
+def _auth_value(api_key: str, scheme: str) -> str:
+    scheme = scheme.strip()
+    return f"{scheme} {api_key}" if scheme else api_key
+
+
+def _anthropic_headers(request_headers: Any, env: dict[str, str], upstream_key: str) -> dict[str, str]:
+    auth_header = env.get("ANTHROPIC_UPSTREAM_AUTH_HEADER", "x-api-key").strip() or "x-api-key"
+    auth_scheme = env.get("ANTHROPIC_UPSTREAM_AUTH_SCHEME", "")
+    headers = {
+        auth_header: _auth_value(upstream_key, auth_scheme),
+        "content-type": "application/json",
+    }
+    forwarded_any_version = False
+    for key, value in request_headers.items():
+        lower = key.lower()
+        if lower == "anthropic-version":
+            forwarded_any_version = True
+        if lower.startswith("anthropic-") or lower.startswith("x-claude-code-"):
+            headers[key] = value
+    if not forwarded_any_version:
+        headers["anthropic-version"] = "2023-06-01"
+    return headers
+
+
+def _model_catalog() -> dict[str, Any]:
+    return {
+        "object": "list",
+        "data": [
+            {"id": config.ACTIVE_MODEL_ALIAS, "object": "model", "display_name": "Cost Guard active model"},
+            {"id": "cg-cheap", "object": "model", "display_name": "Cost Guard cheap"},
+            {"id": "cg-standard", "object": "model", "display_name": "Cost Guard standard"},
+            {"id": "cg-strong", "object": "model", "display_name": "Cost Guard strong"},
+        ],
+    }
 
 
 def _limit_text(text: str, max_chars: int, max_lines: int) -> tuple[str, bool]:
@@ -83,17 +140,34 @@ class CostGuardHandler(BaseHTTPRequestHandler):
         return self.server.costguard_home  # type: ignore[attr-defined]
 
     def do_GET(self) -> None:
-        if self.path == "/health":
+        path_only = urlsplit(self.path).path
+        if path_only == "/health":
             _json_response(self, 200, {"status": "ok"})
             return
+        if path_only == "/v1/models":
+            env = config.load_env(self.home)
+            local_key = env.get("COSTGUARD_LOCAL_API_KEY", "sk-costguard-local")
+            if not _authorized(self.headers, local_key):
+                _json_response(self, 401, {"error": "invalid Cost Guard API key"})
+                return
+            _json_response(self, 200, _model_catalog())
+            return
         _json_response(self, 404, {"error": "not found"})
+
+    def do_HEAD(self) -> None:
+        path_only = urlsplit(self.path).path
+        if path_only in {"/", "/health", "/v1/messages", "/v1/models"}:
+            self.send_response(200)
+            self.send_header("content-type", "application/json")
+            self.end_headers()
+            return
+        self.send_response(404)
+        self.end_headers()
 
     def do_POST(self) -> None:
         env = config.load_env(self.home)
         local_key = env.get("COSTGUARD_LOCAL_API_KEY", "sk-costguard-local")
-        auth = self.headers.get("authorization", "")
-        api_key = self.headers.get("x-api-key", "")
-        if auth != f"Bearer {local_key}" and api_key != local_key:
+        if not _authorized(self.headers, local_key):
             _json_response(self, 401, {"error": "invalid Cost Guard API key"})
             return
 
@@ -160,11 +234,7 @@ class CostGuardHandler(BaseHTTPRequestHandler):
         else:
             upstream = env.get("ANTHROPIC_UPSTREAM_BASE_URL", "")
             upstream_key = env.get("ANTHROPIC_UPSTREAM_API_KEY", "")
-            headers = {
-                "x-api-key": upstream_key,
-                "anthropic-version": self.headers.get("anthropic-version", "2023-06-01"),
-                "content-type": "application/json",
-            }
+            headers = _anthropic_headers(self.headers, env, upstream_key)
 
         if not upstream or not upstream_key:
             _json_response(self, 502, {"error": f"missing upstream configuration for {client}"})
@@ -241,6 +311,21 @@ class CostGuardHandler(BaseHTTPRequestHandler):
             return
 
         upstream_url = _append_path(upstream, self.path)
+        if client == "claude-code" and parse_bool(payload.get("stream"), default=False):
+            self._forward_streaming_response(
+                upstream_url=upstream_url,
+                payload=payload,
+                headers=headers,
+                input_chars=input_chars,
+                model_alias=model_alias,
+                upstream=upstream,
+                decision=decision,
+                security_event=security_event,
+                headroom_rule=headroom_rule,
+                headroom_metrics=headroom_metrics,
+            )
+            return
+
         try:
             response = httpx.post(upstream_url, json=payload, headers=headers, timeout=120)
         except httpx.HTTPError as exc:
@@ -317,6 +402,80 @@ class CostGuardHandler(BaseHTTPRequestHandler):
         self.send_header("content-length", str(len(final_body)))
         self.end_headers()
         self.wfile.write(final_body)
+
+    def _send_upstream_headers(self, status_code: int, headers: httpx.Headers, default_content_type: str) -> str:
+        content_type = headers.get("content-type", default_content_type)
+        self.send_response(status_code)
+        self.send_header("content-type", content_type)
+        for key, value in headers.items():
+            lower = key.lower()
+            if lower in HOP_BY_HOP_HEADERS or lower == "content-type":
+                continue
+            self.send_header(key, value)
+        self.send_header("connection", "close")
+        self.end_headers()
+        self.close_connection = True
+        return content_type
+
+    def _forward_streaming_response(
+        self,
+        upstream_url: str,
+        payload: dict[str, Any],
+        headers: dict[str, str],
+        input_chars: int,
+        model_alias: str,
+        upstream: str,
+        decision: budget.BudgetDecision,
+        security_event: str | None,
+        headroom_rule: str | None,
+        headroom_metrics: dict[str, Any],
+    ) -> None:
+        chunks: list[bytes] = []
+        status_code = 502
+        try:
+            with httpx.stream("POST", upstream_url, json=payload, headers=headers, timeout=120) as response:
+                status_code = response.status_code
+                self._send_upstream_headers(status_code, response.headers, "text/event-stream")
+                for chunk in response.iter_bytes():
+                    if not chunk:
+                        continue
+                    chunks.append(chunk)
+                    self.wfile.write(chunk)
+                    self.wfile.flush()
+        except httpx.HTTPError as exc:
+            if not chunks:
+                _json_response(self, 502, {"error": f"upstream request failed: {exc}"})
+            return
+
+        response_text = b"".join(chunks).decode("utf-8", errors="replace")
+        output_chars = len(response_text)
+        total_tokens = budget.estimate_tokens(input_chars, output_chars)
+        total_cost = budget.estimate_cost(
+            model_alias,
+            budget.estimate_tokens(input_chars),
+            self.home,
+            output_tokens=budget.estimate_tokens(output_chars),
+        )
+        record_usage(
+            {
+                "client": "claude-code",
+                "model_alias": model_alias,
+                "upstream": upstream,
+                "input_chars": input_chars,
+                "output_chars": output_chars,
+                "estimated_tokens": total_tokens,
+                "estimated_cost": total_cost,
+                "rule_applied": headroom_rule,
+                "budget_action": decision.action,
+                "active_budget": decision.mode,
+                "security_event": security_event,
+                "output_reduced": False,
+                "cache_miss": False,
+                "cache_mode": None,
+                **headroom_metrics,
+            },
+            paths.db_path(self.home),
+        )
 
 
 def start_proxy(host: str = "127.0.0.1", port: int = 4040, home: Path | None = None) -> None:
