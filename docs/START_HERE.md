@@ -6,7 +6,7 @@ Use this page first. It tells humans and coding agents which flow to run without
 
 | Situation | Use |
 | --- | --- |
-| First controlled validation on a work PC | `docs/prompts/work-pc-validation-prompt.es.md` |
+| First controlled validation on a work PC | `docs/prompts/work-pc-validation-prompt.md` |
 | Install or operate Cost Guard manually | `docs/RUNBOOK.md` |
 | Update an existing corporate checkout | `docs/WORK_PC_UPDATE.md` |
 | Debug a failure | `docs/TROUBLESHOOTING.md` |
@@ -25,7 +25,7 @@ Use this page first. It tells humans and coding agents which flow to run without
 Use the reusable prompt with Cline or another coding agent.
 
 ```text
-docs/prompts/work-pc-validation-prompt.es.md
+docs/prompts/work-pc-validation-prompt.md
 ```
 
 The prompt covers Python/uv detection, isolated smoke, global `costguard` install, real Cline setup, pricing catalog config, and final validation.

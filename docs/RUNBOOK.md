@@ -470,7 +470,7 @@ Plain uninstall keeps `COSTGUARD_HOME`; purge deletes it.
 Use these when validating or updating a corporate laptop.
 
 ```text
-docs/prompts/work-pc-validation-prompt.es.md
+docs/prompts/work-pc-validation-prompt.md
 docs/WORK_PC_UPDATE.md
 docs/TROUBLESHOOTING.md
 ```

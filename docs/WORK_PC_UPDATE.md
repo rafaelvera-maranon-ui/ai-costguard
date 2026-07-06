@@ -292,6 +292,84 @@ For Cline model routing, use `Model ID: cg-active` when you want `costguard use 
 
 Run only with a teammate who has a Claude Code license/key and an Anthropic-compatible upstream. Use the CLI or VS Code plugin only when it is configured to route through `http://127.0.0.1:4040` and `cg-active`.
 
+First confirm the local `.env` has Anthropic-compatible values. Do not print real secrets.
+
+```text
+ANTHROPIC_UPSTREAM_BASE_URL=
+ANTHROPIC_UPSTREAM_API_KEY=
+ANTHROPIC_UPSTREAM_AUTH_HEADER=x-api-key
+ANTHROPIC_UPSTREAM_AUTH_SCHEME=
+ANTHROPIC_MODEL_CHEAP=
+ANTHROPIC_MODEL_STANDARD=
+ANTHROPIC_MODEL_STRONG=
+```
+
+Use `ANTHROPIC_UPSTREAM_AUTH_HEADER=Authorization` and `ANTHROPIC_UPSTREAM_AUTH_SCHEME=Bearer` only if the provider gateway requires Bearer auth.
+
+Run the Claude Code setup against isolated settings first:
+
+```powershell
+$env:COSTGUARD_HOME = "$(Get-Location)\.tmp\costguard"
+$env:COSTGUARD_CLAUDE_HOME = "$(Get-Location)\.tmp\claude"
+uv run costguard setup --tool claude-code --daily-budget 5 --monthly-budget 100 --budget-mode warn --non-interactive
+uv run costguard doctor
+uv run costguard uninstall --yes
+```
+
+Then clear the isolated variables before any real Claude Code setup:
+
+```powershell
+Remove-Item Env:COSTGUARD_HOME -ErrorAction SilentlyContinue
+Remove-Item Env:COSTGUARD_CLAUDE_HOME -ErrorAction SilentlyContinue
+```
+
+Only after explicit approval to touch real Claude Code settings:
+
+```powershell
+costguard setup --tool claude-code --daily-budget 5 --monthly-budget 100 --budget-mode warn --non-interactive
+costguard doctor
+```
+
+Confirm the effective Claude Code settings point to Cost Guard:
+
+```text
+ANTHROPIC_BASE_URL=http://127.0.0.1:4040
+ANTHROPIC_AUTH_TOKEN=sk-costguard-local
+ANTHROPIC_MODEL=cg-active
+```
+
+Start the proxy in a dedicated terminal:
+
+```powershell
+costguard start
+```
+
+From Claude Code CLI or the VS Code plugin, run a minimal new task:
+
+```text
+Say exactly: OK
+```
+
+Then validate from another terminal:
+
+```powershell
+costguard usage today
+costguard budget status
+costguard status
+```
+
+If that works, test dynamic routing:
+
+```powershell
+costguard use cheap
+costguard status
+# Send another minimal Claude Code request.
+costguard usage today
+costguard use standard
+```
+
+Expected: `ANTHROPIC_MODEL` stays `cg-active`, while Cost Guard routes to the active local category.
+
 Checklist:
 
 ```text
